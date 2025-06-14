@@ -1,0 +1,7 @@
+Please analyze the following resume and job description:
+
+**Resume:**
+%s
+
+**Job Description:**
+%s
