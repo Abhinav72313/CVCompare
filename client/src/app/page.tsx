@@ -1,178 +1,123 @@
 "use client";
 
-import { FileUpload } from "@/components/FileUpload";
-import { JobDescriptionInput } from "@/components/JobDescriptionInput";
+import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFileContext } from "@/contexts/fileContext";
-import { useSession } from "@/contexts/sessionContext";
-import { resumeAnalysisSchema } from "@/lib/schemas";
-import { BarChart3, Briefcase, FileText } from "lucide-react";
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle, FileText, Target, Zap } from "lucide-react";
+import Link from "next/link";
 
-
-
-export default function Home() {
-  const router = useRouter();
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [jobDescription, setJobDescription] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const {setFiles, setResumeHash, setJDHash} = useFileContext();
-  const {sessionId} = useSession()
-
-  const handleAnalyze = async () => {
-    if (!resumeFile || !jobDescription.trim()) {
-      setError("Please upload a resume and enter a job description");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setError(null);
-
-    const formData = new FormData();
-    formData.append('resume', resumeFile);
-    formData.append('job_description', jobDescription);
-    formData.append('session_id', sessionId);
-
-    try {
-      const response = await fetch('http://127.0.0.1:8000/analyze-resume', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      const {analysis,resume_hash,jd_hash} = result
-      console.log({analysis, resume_hash, jd_hash});
-      const parsed = resumeAnalysisSchema.parse(analysis);
-
-      setFiles(resumeFile);      
-      setResumeHash(resume_hash);
-      setJDHash(jd_hash);
-
-      // Store the analysis data and file for the analysis page
-      localStorage.setItem('analysisResult', JSON.stringify(parsed));
-      localStorage.setItem('resumeFileName', resumeFile.name);
-      localStorage.setItem('jobDescription', jobDescription);
-      localStorage.setItem('resumeHash', resume_hash);
-      localStorage.setItem('jdHash', jd_hash);
-
-      // Navigate to analysis page
-      router.push('/analysis');
-    } catch (err) {
-      console.error('Analysis error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to analyze resume');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Briefcase className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Resume Fitter
+      <Navbar />
+
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+        <div className="text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            Optimize Your Resume for
+            <span className="text-blue-600"> Any Job</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Get detailed insights on how well your resume matches job descriptions and improve your ATS score
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            AI-powered resume analysis that helps you tailor your resume to specific job descriptions, 
+            increasing your chances of landing interviews.
           </p>
-        </div>
-
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Step Indicators */} {/* <div className="flex items-center justify-center space-x-8 mb-8">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
-                1
-              </div>
-              <span className="text-sm font-medium">Upload Resume</span>
-            </div>
-            <div className="w-16 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
-                2
-              </div>
-              <span className="text-sm font-medium">Add Job Description</span>
-            </div>
-            <div className="w-16 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
-                3
-              </div>
-              <span className="text-sm font-medium text-gray-500">Get Analysis</span>
-            </div>
-          </div> */}
-
-          {/* Upload Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Upload Your Resume
-              </CardTitle>
-              <CardDescription>
-                Upload your resume in PDF
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FileUpload
-                onFileSelect={setResumeFile}
-                label="Upload Resume"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Job Description Section */}
-          <JobDescriptionInput
-            value={jobDescription}
-            onChange={setJobDescription}
-          />
-
-          {/* Error Display */}
-          {error && (
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="pt-6">
-                <p className="text-red-600 text-sm">{error}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Analyze Button */}
-          <div className="flex justify-center">
-            <Button
-              onClick={handleAnalyze}
-              disabled={!resumeFile || !jobDescription.trim() || isAnalyzing}
-              size="lg"
-              className="px-8"
-            >
-              {isAnalyzing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Analyze Resume
-                </>
-              )}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/upload">
+              <Button size="lg" className="px-8 py-3">
+                Analyze Resume Now
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg" className="px-8 py-3">
+              Learn More
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Features Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Why Choose ResumeFitter?
+          </h2>
+          <p className="text-lg text-gray-600">
+            Get detailed insights and actionable recommendations to improve your resume
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          <Card className="text-center">
+            <CardHeader>
+              <Target className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <CardTitle>Smart Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                AI-powered analysis that compares your resume against job descriptions 
+                and identifies missing keywords and skills.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center">
+            <CardHeader>
+              <Zap className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <CardTitle>ATS Optimization</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Optimize your resume for Applicant Tracking Systems with 
+                detailed scoring and improvement suggestions.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center">
+            <CardHeader>
+              <CheckCircle className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <CardTitle>Instant Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Get immediate feedback with actionable recommendations 
+                to improve your resume&apos;s effectiveness.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-blue-600 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            Ready to Land Your Dream Job?
+          </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join thousands of job seekers who have improved their resume with ResumeFitter
+          </p>
+          <Link href="/upload">
+            <Button size="lg" variant="secondary" className="px-8 py-3">
+              Start Your Analysis
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <FileText className="h-6 w-6" />
+              <span className="ml-2 font-semibold">ResumeFitter</span>
+            </div>
+            <p className="text-gray-400">
+              © 2025 ResumeFitter. All rights reserved.            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

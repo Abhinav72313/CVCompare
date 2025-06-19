@@ -5,22 +5,21 @@ import { ATSCalculation } from '@/components/ATSCalculation';
 import ChatInterface from '@/components/ChatInterface';
 import FileChanger from '@/components/FileChanger';
 import { JobDescriptionHighlighter } from '@/components/JobDescriptionHighlighter';
+import Navbar from '@/components/Navbar';
 import PdfHighlighter from '@/components/PDFViewer';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFileContext } from "@/contexts/fileContext";
 import { ATSWeights, calculateDynamicATSScore, defaultWeights } from '@/lib/atsCalculations';
 import { ResumeAnalysis } from '@/lib/schemas';
-import { AlertCircle, ArrowLeft, CheckCircle, FileText, Search, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, FileText, Search, XCircle } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function AnalysisPage() {
     const router = useRouter();
     const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
-    const [resumeFileName, setResumeFileName] = useState<string | null>(null);
     const [jobDescription, setJobDescription] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
     const [selectedResume, setSelectedResume] = useState<boolean>(true);
@@ -84,7 +83,6 @@ export default function AnalysisPage() {
         // Load analysis data from localStorage
         try {
             const analysisData = localStorage.getItem('analysisResult');
-            const fileName = localStorage.getItem('resumeFileName');
             const jobDesc = localStorage.getItem('jobDescription');
 
             if (!file) {
@@ -94,7 +92,6 @@ export default function AnalysisPage() {
 
             if (analysisData) {
                 setAnalysis(JSON.parse(analysisData));
-                setResumeFileName(fileName);
                 setJobDescription(jobDesc || "");
 
 
@@ -236,47 +233,12 @@ export default function AnalysisPage() {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
-        );
+            </div>        );
     }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-2 shadow-sm">
-                <div className=" flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => router.push('/')}
-                            className="flex items-center gap-2"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Resume Analysis</h1>
-                            <p className="text-sm text-gray-600">
-                                {resumeFileName ? `File: ${resumeFileName}` : "Detailed insights and recommendations"}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-
-                        {analysis && (
-                            <>
-                                <div className="text-center">
-                                    <div className={`text-2xl font-bold ${getScoreColor(calculatedScore)}`}>
-                                        {calculatedScore}%
-                                    </div>
-                                    <p className="text-xs text-gray-600">ATS Score</p>
-                                </div>
-
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
+            <Navbar />
 
             {/* Main Content */}
             <div className=" mx-auto p-6 min-h-screen">
