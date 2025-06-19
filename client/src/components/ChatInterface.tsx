@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useFileContext } from "@/contexts/fileContext";
+import { useSession } from "@/contexts/sessionContext";
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from 'react';
 
@@ -29,6 +31,8 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const {sessionId} = useSession()
+    const {resumeHash, jdHash} = useFileContext()
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,19 +55,43 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
         setChatMessages(prev => [...prev, userMessage]);
         setCurrentMessage('');
         setIsLoading(true);
-        
-        // Simulate AI response (in a real app, this would call your backend)
-        setTimeout(() => {
+
+        const res = await fetch('http://localhost:8000/chat',{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: sessionId, // Replace with actual session ID
+                message: currentMessage,
+                resume_hash: resumeHash, // Pass the resume hash
+                jd_hash: jdHash // Pass the job description hash
+            }),
+        })
+
+        if(res.ok){
+            const response = await res.json();
             const aiResponse: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 type: 'assistant',
-                content: 'Thank you for your question! Based on your resume analysis, I can provide specific recommendations. This is a simulated response - in the full implementation, this would connect to your AI backend for personalized advice.',
+                content: response.response,
                 timestamp: new Date()
             };
             setChatMessages(prev => [...prev, aiResponse]);
             setIsLoading(false);
-        }, 1000);
-    };
+        }else{
+            const errorResponse = "Failed to fetch response from the server. Please try again later.";
+            const aiResponse: ChatMessage = {
+                id: (Date.now() + 1).toString(),
+                type: 'assistant',
+                content: errorResponse,
+                timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, aiResponse]);
+            setIsLoading(false);
+        }
+        
+   };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {

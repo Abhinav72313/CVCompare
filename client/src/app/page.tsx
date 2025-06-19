@@ -5,6 +5,7 @@ import { JobDescriptionInput } from "@/components/JobDescriptionInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFileContext } from "@/contexts/fileContext";
+import { useSession } from "@/contexts/sessionContext";
 import { resumeAnalysisSchema } from "@/lib/schemas";
 import { BarChart3, Briefcase, FileText } from "lucide-react";
 import { useRouter } from 'next/navigation';
@@ -18,7 +19,8 @@ export default function Home() {
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const {setFiles} = useFileContext();
+  const {setFiles, setResumeHash, setJDHash} = useFileContext();
+  const {sessionId} = useSession()
 
   const handleAnalyze = async () => {
     if (!resumeFile || !jobDescription.trim()) {
@@ -32,6 +34,7 @@ export default function Home() {
     const formData = new FormData();
     formData.append('resume', resumeFile);
     formData.append('job_description', jobDescription);
+    formData.append('session_id', sessionId);
 
     try {
       const response = await fetch('http://127.0.0.1:8000/analyze-resume', {
@@ -44,16 +47,22 @@ export default function Home() {
       }
 
       const result = await response.json();
-      console.log(result)
-      const parsed = resumeAnalysisSchema.parse(result);
+      
+      const {analysis,resume_hash,jd_hash} = result
+      console.log({analysis, resume_hash, jd_hash});
+      const parsed = resumeAnalysisSchema.parse(analysis);
 
       setFiles(resumeFile);      
-      
+      setResumeHash(resume_hash);
+      setJDHash(jd_hash);
+
       // Store the analysis data and file for the analysis page
       localStorage.setItem('analysisResult', JSON.stringify(parsed));
       localStorage.setItem('resumeFileName', resumeFile.name);
       localStorage.setItem('jobDescription', jobDescription);
-      
+      localStorage.setItem('resumeHash', resume_hash);
+      localStorage.setItem('jdHash', jd_hash);
+
       // Navigate to analysis page
       router.push('/analysis');
     } catch (err) {

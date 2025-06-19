@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   type ATSWeights,
   calculateCertificationScore,
-  calculateDynamicATSScore,
   calculateEducationScore,
   calculateProjectScore,
   calculateSkillsScore,
@@ -22,7 +21,6 @@ import {
   getWorkExperienceDetails
 } from '@/lib/sectionDetails';
 import { Brain, Briefcase, FileText, GraduationCap, Ribbon } from "lucide-react";
-import { useEffect, useState } from "react";
 import { ATSScoreDisplay } from './ATSScoreDisplay';
 import { FormulaExplanation } from './FormulaExplanation';
 import { SectionBreakdown } from './SectionBreakdown';
@@ -32,58 +30,50 @@ interface ATSCalculationProps {
   analysis: ResumeAnalysis;
   calculatedScore: number;
   weights: ATSWeights;
-  setWeights: (weightanys: ATSWeights) => void;
-  setCalculatedScore: (score: number) => void;
+  setWeights: (weights: ATSWeights) => void;
+  w: { [key: string]: number };
 }
 
-export function ATSCalculation({ analysis, calculatedScore,setCalculatedScore,weights,setWeights }: ATSCalculationProps) {
+export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w }: ATSCalculationProps) {
 
-  const [w, setw] = useState<{ [key: string]: number }>({
-    'education': 0,
-    'workExperience': 0,
-    'skills': 0,
-    'certifications': 0,
-    'summary': 0
-  })
+  // useEffect(() => {
+  //   const w = {
+  //     'education': analysis.education?.required_degrees_in_jd?.length ? 1 : 0,
+  //     'workExperience': analysis.work_experience?.required_years ? 1 : 0,
+  //     'skills': analysis.skills?.technical_skills?.required_from_jd?.length ? 1 : 0,
+  //     'certifications': analysis.certifications?.required_certs_in_jd?.length ? 1 : 0,
+  //     'summary': analysis.summary?.intent_matches_jd ? 1 : 0
+  //   }
 
-  useEffect(() => {
-    const w = {
-      'education': analysis.education?.required_degrees_in_jd?.length ? 1 : 0,
-      'workExperience': analysis.work_experience?.required_years ? 1 : 0,
-      'skills': analysis.skills?.technical_skills?.required_from_jd?.length ? 1 : 0,
-      'certifications': analysis.certifications?.required_certs_in_jd?.length ? 1 : 0,
-      'summary': analysis.summary?.intent_matches_jd ? 1 : 0
-    }
+  //   setw(w);
 
-    setw(w);
+  //   const normalizedWeights: ATSWeights = weights
 
-    const normalizedWeights: ATSWeights = weights
+  //     normalizedWeights.education = normalizedWeights.education * w['education'];
+  //     normalizedWeights.workExperience = normalizedWeights.workExperience * w['workExperience'];
+  //     normalizedWeights.skills = normalizedWeights.skills * w['skills'];
+  //     normalizedWeights.certifications = normalizedWeights.certifications * w['certifications'];
+  //     normalizedWeights.summary = normalizedWeights.summary * w['summary'];
 
-      normalizedWeights.education = normalizedWeights.education * w['education'];
-      normalizedWeights.workExperience = normalizedWeights.workExperience * w['workExperience'];
-      normalizedWeights.skills = normalizedWeights.skills * w['skills'];
-      normalizedWeights.certifications = normalizedWeights.certifications * w['certifications'];
-      normalizedWeights.summary = normalizedWeights.summary * w['summary'];
+  //     let total = 0;
+  //     for (const key in normalizedWeights) {
+  //       total += normalizedWeights[key as keyof ATSWeights];
+  //     }
 
-      let total = 0;
-      for (const key in normalizedWeights) {
-        total += normalizedWeights[key as keyof ATSWeights];
-      }
-
-      for (const key in normalizedWeights) {
-        normalizedWeights[key as keyof ATSWeights] = normalizedWeights[key as keyof ATSWeights] / total;
-      }
+  //     for (const key in normalizedWeights) {
+  //       normalizedWeights[key as keyof ATSWeights] = normalizedWeights[key as keyof ATSWeights] / total;
+  //     }
 
 
-    setWeights(normalizedWeights)
+  //   setWeights(normalizedWeights)
 
-  }, [])
+  // }, [])
 
-  useEffect(() => {
-    const newScore = Math.round(calculateDynamicATSScore(analysis, weights));
-    setCalculatedScore(newScore);
+  // useEffect(() => {
+  //   const newScore = Math.round(calculateDynamicATSScore(analysis, weights));
+  //   setCalculatedScore(newScore);
 
-  }, [analysis, weights]);
+  // }, [analysis, weights]);
 
   const handleWeightChange = (section: keyof ATSWeights, value: number) => {
     const newWeights = { ...weights };
@@ -137,6 +127,7 @@ export function ATSCalculation({ analysis, calculatedScore,setCalculatedScore,we
     const summaryScore = calculateSummaryScore(analysis);    // Calculate combined skills score (60% skills, 40% projects)
     const combinedSkillsScore = (0.6 * skillsScore + 0.4 * projectScore);
 
+
     return [
       {
         name: "Education",
@@ -186,6 +177,7 @@ export function ATSCalculation({ analysis, calculatedScore,setCalculatedScore,we
   };
 
   const sectionScores = getSectionScores();
+  console.log(sectionScores)
   return (
     <div className="space-y-6">      {/* Overall Score */}
       <ATSScoreDisplay

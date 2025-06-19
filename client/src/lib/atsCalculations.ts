@@ -23,7 +23,6 @@ export function calculateDynamicATSScore(analysis: ResumeAnalysis | null, custom
 
   // Use custom weights if provided, otherwise use default weights
   const weights = customWeights ?? defaultWeights;
-  console.log("Using weights:", weights);
 
   const educationScore = calculateEducationScore(analysis);
   const workExperienceScore = calculateWorkExperienceScore(analysis);
@@ -90,19 +89,22 @@ export function calculateWorkExperienceScore(analysis: ResumeAnalysis): number {
   const relevantYears = workExp.total_relevant_years || 0;
   const requiredYears = workExp.required_years || 0;
   const durationScore = Math.min(1, relevantYears / requiredYears) || 0;
+
   const totalTitles = workExp.jd_titles?.length || 0;
   const matchingTitles = workExp.matching_titles?.length || 0;
   const semanticMatches = workExp.semantic_title_matches?.length || 0;
-  const titleMatchScore = Math.min(1, (matchingTitles + semanticMatches * 0.7) / totalTitles);
+  const titleMatchScore = Math.min(1, (matchingTitles + semanticMatches * 0.7) / totalTitles) || 0;
+  console.log('Title Match Score:', titleMatchScore, 'Total Titles:', totalTitles, 'Matching Titles:', matchingTitles, 'Semantic Matches:', semanticMatches);
 
   const keywordOverlap = workExp.keyword_overlap?.length ??  0;
-  const keywordMatchScore = Math.min(1, keywordOverlap / (analysis.skills?.technical_skills?.required_from_jd?.length || 10));
+  const keywordMatchScore = Math.min(1, keywordOverlap / (analysis.skills?.technical_skills?.required_from_jd?.length || 10)) || 0  ;
 
   const currentYear = new Date().getFullYear();
   const latestYear = workExp.latest_experience_year || 0;
   const yearsDiff = currentYear - latestYear;
-  const recencyScore = Math.max(0, Math.min(1, 1 - (yearsDiff / 5)));
+  const recencyScore = Math.max(0, Math.min(1, 1 - (yearsDiff / 5))) || 0;
 
+  console.log('Work Experience Scores:', durationScore, titleMatchScore, keywordMatchScore, recencyScore);
   return 0.3 * durationScore + 0.2 * titleMatchScore + 0.4 * keywordMatchScore + 0.1 * recencyScore;
 }
 
@@ -148,17 +150,17 @@ export function calculateSkillsScore(analysis: ResumeAnalysis): number {
   const matchedTechSkills = skills.technical_skills?.matched_skills?.length || 0;
   const equivalentSkills = skills.technical_skills?.equivalent_skills?.length || 0;
   const techCoverage = requiredTechSkills > 0 ? 
-    Math.min(1, (matchedTechSkills + equivalentSkills * 0.8) / requiredTechSkills) : 0;
+    Math.min(1, (matchedTechSkills + equivalentSkills * 0.8) / requiredTechSkills) || 0 : 0;
 
   const requiredSoftSkills = skills.soft_skills?.required_from_jd?.length || 0;
   const demonstratedSoftSkills = skills.soft_skills?.demonstrated_in_resume?.length || 0;
   const softCoverage = requiredSoftSkills > 0 ? 
-    Math.min(1, demonstratedSoftSkills / requiredSoftSkills) : 0;
+    Math.min(1, demonstratedSoftSkills / requiredSoftSkills) || 0 : 0;
 
   const requiredDomains = skills.domain_expertise?.required_from_jd?.length || 0;
   const matchingDomains = skills.domain_expertise?.matching_domains?.length || 0;
   const domainBonus = requiredDomains > 0 ? 
-    Math.min(1, matchingDomains / requiredDomains) : 0;
+    Math.min(1, matchingDomains / requiredDomains) || 0 : 0;
 
   return 0.6 * techCoverage + 0.3 * softCoverage + 0.1 * domainBonus;
 }
@@ -171,12 +173,12 @@ export function calculateCertificationScore(analysis: ResumeAnalysis): number {
   const matchedRequiredCerts = certs.required_certifications_matched?.length || 0;
   const equivalentCerts = certs.equivalent_certifications?.length || 0;
   const requiredCoverage = requiredCerts > 0 ? 
-    Math.min(1, (matchedRequiredCerts + equivalentCerts * 0.8) / requiredCerts) : 1;
+    Math.min(1, (matchedRequiredCerts + equivalentCerts * 0.8) / requiredCerts) || 0 : 1;
 
   const preferredCerts = certs.preferred_certs_in_jd?.length || 0;
   const matchedPreferredCerts = certs.preferred_certifications_matched?.length || 0;
   const bonusScore = preferredCerts > 0 ? 
-    Math.min(1, matchedPreferredCerts / preferredCerts) : 0;
+    Math.min(1, matchedPreferredCerts / preferredCerts) || 0 : 0;
 
   return 0.7 * requiredCoverage + 0.3 * bonusScore;
 }

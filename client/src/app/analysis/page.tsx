@@ -22,8 +22,8 @@ export default function AnalysisPage() {
     const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
     const [resumeFileName, setResumeFileName] = useState<string | null>(null);
     const [jobDescription, setJobDescription] = useState<string>("");
-    const [isLoading, setIsLoading] = useState(true); 
-    const [selectedResume, setSelectedResume] = useState<boolean>(true); 
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedResume, setSelectedResume] = useState<boolean>(true);
     const { file } = useFileContext();
     const [matched_skills, setMatchedSkills] = useState<string[]>([]);
     const [keywordMatchRate, setKeywordMatchRate] = useState<number>(0);
@@ -33,10 +33,52 @@ export default function AnalysisPage() {
 
     const [calculatedScore, setCalculatedScore] = useState(0);
 
+    const [w, setw] = useState<{ [key: string]: number }>({
+        'education': 0,
+        'workExperience': 0,
+        'skills': 0,
+        'certifications': 0,
+        'summary': 0
+    })
+
     useEffect(() => {
-        const score = Math.round(calculateDynamicATSScore(analysis, weights));
+
+        if(!analysis) return;
+        const w = {
+            'education': analysis.education?.required_degrees_in_jd?.length ? 1 : 0,
+            'workExperience': analysis.work_experience?.required_years ? 1 : 0,
+            'skills': analysis.skills?.technical_skills?.required_from_jd?.length ? 1 : 0,
+            'certifications': analysis.certifications?.required_certs_in_jd?.length ? 1 : 0,
+            'summary': analysis.summary?.intent_matches_jd ? 1 : 0
+        }
+
+        setw(w);
+
+        const normalizedWeights: ATSWeights = weights
+
+        normalizedWeights.education = normalizedWeights.education * w['education'];
+        normalizedWeights.workExperience = normalizedWeights.workExperience * w['workExperience'];
+        normalizedWeights.skills = normalizedWeights.skills * w['skills'];
+        normalizedWeights.certifications = normalizedWeights.certifications * w['certifications'];
+        normalizedWeights.summary = normalizedWeights.summary * w['summary'];
+
+        let total = 0;
+        for (const key in normalizedWeights) {
+            total += normalizedWeights[key as keyof ATSWeights];
+        }
+
+        for (const key in normalizedWeights) {
+            normalizedWeights[key as keyof ATSWeights] = normalizedWeights[key as keyof ATSWeights] / total;
+        }
+
+
+        setWeights(normalizedWeights)
+
+        const score = Math.round(calculateDynamicATSScore(analysis, normalizedWeights));
         setCalculatedScore(score);
-    }, [weights, analysis]);
+
+
+    }, [analysis, weights]);
 
     useEffect(() => {
         // Load analysis data from localStorage
@@ -54,7 +96,7 @@ export default function AnalysisPage() {
                 setAnalysis(JSON.parse(analysisData));
                 setResumeFileName(fileName);
                 setJobDescription(jobDesc || "");
-                
+
 
             } else {
                 // No analysis data found, redirect to home
@@ -142,19 +184,19 @@ export default function AnalysisPage() {
     // Get matched keywords from analysis
     const getMatchedKeywords = (): string[] => {
         const keywords: string[] = [];
-        
+
         if (analysis?.skills?.technical_skills?.matched_skills) {
             keywords.push(...analysis.skills.technical_skills.matched_skills);
         }
-        
+
         if (analysis?.work_experience?.keyword_overlap) {
             keywords.push(...analysis.work_experience.keyword_overlap);
         }
-        
+
         if (analysis?.summary?.keywords_matched) {
             keywords.push(...analysis.summary.keywords_matched);
         }
-        
+
         // Remove duplicates
         return [...new Set(keywords)];
     };
@@ -162,23 +204,23 @@ export default function AnalysisPage() {
     // Get missing keywords from analysis
     const getMissingKeywords = (): string[] => {
         const keywords: string[] = [];
-        
+
         if (analysis?.skills?.technical_skills?.missing_required_skills) {
             keywords.push(...analysis.skills.technical_skills.missing_required_skills);
         }
-        
+
         if (analysis?.skills?.technical_skills?.required_from_jd) {
             // Add required skills that are not in matched skills
             const matched = analysis.skills.technical_skills.matched_skills || [];
             const required = analysis.skills.technical_skills.required_from_jd;
-            const missing = required.filter(skill => 
-                !matched.some(matchedSkill => 
+            const missing = required.filter(skill =>
+                !matched.some(matchedSkill =>
                     matchedSkill.toLowerCase() === skill.toLowerCase()
                 )
             );
             keywords.push(...missing);
         }
-        
+
         // Remove duplicates
         return [...new Set(keywords)];
     };
@@ -286,7 +328,7 @@ export default function AnalysisPage() {
                                         <AnalysisDisplay analysis={analysis} />
                                     </TabsContent>
                                     <TabsContent value="Calculation" className='overflow-y-auto pb-1 pr-2 max-h-[calc(100vh-200px)]'>
-                                        <ATSCalculation analysis={analysis} weights={weights} setWeights={setWeights} setCalculatedScore={setCalculatedScore} calculatedScore={calculatedScore} />
+                                        <ATSCalculation analysis={analysis} weights={weights} setWeights={setWeights} w={w} calculatedScore={calculatedScore} />
                                     </TabsContent>
                                     <TabsContent value="Chat" className='overflow-y-auto pb-1 pr-2 max-h-[calc(100vh-200px)]'>
                                         <ChatInterface />
@@ -300,14 +342,14 @@ export default function AnalysisPage() {
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col  ">
                         <div className="p-4 border-b border-gray-200" onClick={() => setSelectedResume(!selectedResume)}>
                             <FileChanger resume={selectedResume} />
-                        </div>                        
+                        </div>
                         <div className="flex-1 mx-auto w-full">
                             {file ? (
                                 selectedResume ?
                                     <PdfHighlighter
                                         file={file}
                                         highlightWords={getKeywordsToHighlight()}
-                                    /> : 
+                                    /> :
                                     <div className="h-full flex flex-col max-h-[calc(100vh-100px)]">
                                         {/* Legend */}
                                         <div className="p-3 border-b border-gray-100 bg-gray-50">
@@ -325,7 +367,7 @@ export default function AnalysisPage() {
                                         </div>
                                         {/* Job Description with highlighting */}
                                         <div className="flex-1 overflow-auto">
-                                            <JobDescriptionHighlighter 
+                                            <JobDescriptionHighlighter
                                                 text={jobDescription}
                                                 matchedKeywords={getMatchedKeywords()}
                                                 missingKeywords={getMissingKeywords()}
