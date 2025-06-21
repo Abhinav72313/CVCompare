@@ -1,4 +1,4 @@
-# ResumeFitter
+# CVCompare
 
 A powerful AI-driven application that analyzes resumes against job descriptions and provides detailed ATS (Applicant Tracking System) scoring and optimization recommendations.
 
@@ -41,7 +41,7 @@ This project consists of two main components:
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd ResumeFitter
+cd CVCompare
 ```
 
 ### 2. Backend Setup
@@ -94,7 +94,7 @@ The application will be available at `http://localhost:3000`
 ## 📁 Project Structure
 
 ```
-ResumeFitter/
+CVCompare/
 ├── backend/                 # FastAPI backend
 │   ├── main.py             # Main FastAPI application
 │   ├── requirements.txt    # Python dependencies

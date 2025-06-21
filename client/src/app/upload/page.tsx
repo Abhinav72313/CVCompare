@@ -1,44 +1,58 @@
 "use client";
 
-import { FileUpload } from "@/components/FileUpload";
 import { JobDescriptionInput } from "@/components/JobDescriptionInput";
-import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { UploadThingFileUpload } from "@/components/UploadThingFileUpload";
 import { useFileContext } from "@/contexts/fileContext";
-import { useSession } from "@/contexts/sessionContext";
-import { resumeAnalysisSchema } from "@/lib/schemas";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
+import { useUser } from '@clerk/nextjs';
 import { BarChart3, Briefcase, FileText } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function UploadPage() {
   const router = useRouter();
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const { user } = useUser();
+  const authenticatedFetch = useAuthenticatedFetch();
   const [jobDescription, setJobDescription] = useState("");
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const {setFiles, setResumeHash, setJDHash} = useFileContext();
-  const {sessionId} = useSession()
+  const {  setResumeHash, setJDHash } = useFileContext();
 
   const handleAnalyze = async () => {
-    if (!resumeFile || !jobDescription.trim()) {
+    if (!fileUrl || !jobDescription.trim() || !fileName) {
       setError("Please upload a resume and enter a job description");
+      return;
+    }
+
+    if (!user) {
+      setError("Please sign in to analyze your resume");
+      return;
+    }
+
+    if(!fileUrl){
+      setError("Please upload a resume file first");
       return;
     }
 
     setIsAnalyzing(true);
     setError(null);
-
     const formData = new FormData();
-    formData.append('resume', resumeFile);
     formData.append('job_description', jobDescription);
-    formData.append('session_id', sessionId);
+    formData.append('file_url', fileUrl);
+    formData.append('file_name', fileName); // Use the uploaded file name
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/analyze-resume', {
+
+      const response = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analyze-resume`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Origin': 'http://localhost:3000',
+        }
       });
 
       if (!response.ok) {
@@ -46,21 +60,13 @@ export default function UploadPage() {
       }
 
       const result = await response.json();
-      
-      // Validate response with zod schema
-      const validatedResult = resumeAnalysisSchema.parse(result.analysis);
-      
-      // Store analysis result and file data
-      localStorage.setItem('analysisResult', JSON.stringify(validatedResult));
-      localStorage.setItem('resumeFileName', resumeFile.name);
-      localStorage.setItem('jobDescription', jobDescription);
-      
-      setFiles(resumeFile);
+
       setResumeHash(result.resume_hash);
       setJDHash(result.jd_hash);
-      
+
       // Navigate to analysis page
-      router.push('/analysis');
+      router.push('/analysis?resume_hash=' + result.resume_hash + '&jd_hash=' + result.jd_hash);
+
     } catch (error) {
       console.error('Analysis error:', error);
       setError(error instanceof Error ? error.message : 'Analysis failed. Please try again.');
@@ -70,7 +76,6 @@ export default function UploadPage() {
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Navbar />
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-4xl">
@@ -96,13 +101,14 @@ export default function UploadPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <FileUpload 
-                  label="Upload Resume"
-                  onFileSelect={setResumeFile} 
+                <UploadThingFileUpload
+                  label="Upload your resume (PDF only)"
+                  setFileUrl={setFileUrl}
+                  setFileName={setFileName}
                 />
-                {resumeFile && (
+                {fileUrl && (
                   <p className="text-sm text-green-600 mt-2">
-                    ✓ {resumeFile.name} uploaded successfully
+                    ✓ {fileName} uploaded successfully
                   </p>
                 )}
               </CardContent>
@@ -120,7 +126,7 @@ export default function UploadPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <JobDescriptionInput 
+                <JobDescriptionInput
                   value={jobDescription}
                   onChange={setJobDescription}
                 />
@@ -139,9 +145,9 @@ export default function UploadPage() {
                   Ready to Analyze
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Get detailed insights about how well your resume matches the job requirements
+                  Get detailed insights about how well your resume matches the job requirements. This might take a few minutes
                 </p>
-                
+
                 {error && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-sm text-red-600">{error}</p>
@@ -150,7 +156,7 @@ export default function UploadPage() {
 
                 <Button
                   onClick={handleAnalyze}
-                  disabled={!resumeFile || !jobDescription.trim() || isAnalyzing}
+                  disabled={!fileUrl || !jobDescription.trim() || isAnalyzing}
                   size="lg"
                   className="px-8 py-3"
                 >

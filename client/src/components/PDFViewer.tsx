@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
@@ -14,15 +14,20 @@ type Props = {
 export default function PdfHighlighter({ file, highlightWords }: Props) {
     const [numPages, setNumPages] = useState<number>(0);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-
-    useEffect(() => {
+    const [error, setError] = useState<string | null>(null);    useEffect(() => {
+        if (!file) {
+            setError("No file provided");
+            return;
+        }
+        
+        setError(null);
         const url = URL.createObjectURL(file);
         setPdfUrl(url);
         return () => URL.revokeObjectURL(url);
     }, [file]);
 
-    // Highlight specific words inside the rendered text layer
-    const highlightText = (text: string): string[] => {
+    // Memoize the highlight function to prevent unnecessary re-renders
+    const highlightText = useCallback((text: string): string[] => {
         if (!highlightWords.length) return [text];
 
         const parts: string[] = [];
@@ -53,21 +58,39 @@ export default function PdfHighlighter({ file, highlightWords }: Props) {
         }
 
         return parts;
-    };
-
-    return (
+    }, [highlightWords]);    return (
         <div className="w-full max-h-[calc(100vh-100px)] overflow-auto">
-            {pdfUrl && (
-                <Document file={pdfUrl} onLoadSuccess={(pdf) => setNumPages(pdf.numPages)}>
+            {error && (
+                <div className="p-4 text-red-600 bg-red-50 rounded-md">
+                    Error loading PDF: {error}
+                </div>
+            )}
+            {pdfUrl && !error && (
+                <Document 
+                    file={pdfUrl} 
+                    onLoadSuccess={(pdf) => setNumPages(pdf.numPages)}
+                    onLoadError={(error) => setError(error.message)}
+                    loading={<div className="p-4 text-gray-600">Loading PDF...</div>}
+                >
                     {Array.from({ length: numPages }, (_, index) => (
                         <Page
                             key={`page_${index + 1}`}
                             scale={1.1}
                             pageNumber={index + 1}
                             renderAnnotationLayer={false}
+                            renderTextLayer={true}
                             customTextRenderer={({ str }) => {
-                                const s = highlightText(str).join('');
-                                return s;
+                                try {
+                                    const s = highlightText(str).join('');
+                                    return s;
+                                } catch (err) {
+                                    console.warn('Text rendering error:', err);
+                                    return str;
+                                }
+                            }}
+                            onRenderError={(error) => {
+                                console.warn('Page render error:', error);
+                                // Don't set global error for individual page errors
                             }}
                         />
                     ))}

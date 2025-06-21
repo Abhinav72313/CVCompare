@@ -142,6 +142,7 @@ Include at the end a list of 7–8 actionable suggestions to improve the resume 
 - Field match: TRUE if field is directly related, similar, or transferable to required field
 - Consider MBA as business-related for business analyst roles
 - Institution tiers: Tier 1 (Top 50 universities), Tier 2 (Regional/well-known), Tier 3 (Local/lesser known), Unknown
+- Consider Similar Degrees in same field (e.g., "BSc in Computer Science" matches "BTech in Computer Engineering")
 
 ### Work Experience Calculation:
 - Calculate duration in years with 2 decimal precision (months/12)

@@ -1,6 +1,8 @@
 import os
+from typing import Optional
 from langchain_astradb import AstraDBVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
+
 
 
 def get_vector_store():
@@ -22,3 +24,4 @@ def get_vector_store():
         token=token,
         collection_name="resumes",
     )
+

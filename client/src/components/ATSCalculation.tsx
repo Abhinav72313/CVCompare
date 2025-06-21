@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   type ATSWeights,
   calculateCertificationScore,
+  calculateDynamicATSScore,
   calculateEducationScore,
   calculateProjectScore,
   calculateSkillsScore,
@@ -21,78 +22,101 @@ import {
   getWorkExperienceDetails
 } from '@/lib/sectionDetails';
 import { Brain, Briefcase, FileText, GraduationCap, Ribbon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ATSScoreDisplay } from './ATSScoreDisplay';
 import { FormulaExplanation } from './FormulaExplanation';
 import { SectionBreakdown } from './SectionBreakdown';
 import { WeightControls } from './WeightControls';
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
+import { useSearchParams } from "next/navigation";
 
 interface ATSCalculationProps {
   analysis: ResumeAnalysis;
   calculatedScore: number;
-  weights: ATSWeights;
+  weights: ATSWeights|null;
   setWeights: (weights: ATSWeights) => void;
   w: { [key: string]: number };
+  setCalculatedScore: (score: number) => void;
 }
 
-export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w }: ATSCalculationProps) {
+export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,setCalculatedScore,w }: ATSCalculationProps) {
+  // Debounce timer ref
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  // Local state for immediate UI updates
+  const [localWeights, setLocalWeights] = useState<ATSWeights|null>(weights);
+  const authfetch = useAuthenticatedFetch()
+  const params = useSearchParams()
 
-  // useEffect(() => {
-  //   const w = {
-  //     'education': analysis.education?.required_degrees_in_jd?.length ? 1 : 0,
-  //     'workExperience': analysis.work_experience?.required_years ? 1 : 0,
-  //     'skills': analysis.skills?.technical_skills?.required_from_jd?.length ? 1 : 0,
-  //     'certifications': analysis.certifications?.required_certs_in_jd?.length ? 1 : 0,
-  //     'summary': analysis.summary?.intent_matches_jd ? 1 : 0
-  //   }
+  const handleWeightChange = useCallback((section: keyof ATSWeights, value: number) => {
+    // Update local weights immediately for responsive UI
 
-  //   setw(w);
+    if(!localWeights) return;
 
-  //   const normalizedWeights: ATSWeights = weights
-
-  //     normalizedWeights.education = normalizedWeights.education * w['education'];
-  //     normalizedWeights.workExperience = normalizedWeights.workExperience * w['workExperience'];
-  //     normalizedWeights.skills = normalizedWeights.skills * w['skills'];
-  //     normalizedWeights.certifications = normalizedWeights.certifications * w['certifications'];
-  //     normalizedWeights.summary = normalizedWeights.summary * w['summary'];
-
-  //     let total = 0;
-  //     for (const key in normalizedWeights) {
-  //       total += normalizedWeights[key as keyof ATSWeights];
-  //     }
-
-  //     for (const key in normalizedWeights) {
-  //       normalizedWeights[key as keyof ATSWeights] = normalizedWeights[key as keyof ATSWeights] / total;
-  //     }
-
-
-  //   setWeights(normalizedWeights)
-
-  // }, [])
-
-  // useEffect(() => {
-  //   const newScore = Math.round(calculateDynamicATSScore(analysis, weights));
-  //   setCalculatedScore(newScore);
-
-  // }, [analysis, weights]);
-
-  const handleWeightChange = (section: keyof ATSWeights, value: number) => {
-    const newWeights = { ...weights };
+    const newWeights = { ...localWeights };
     newWeights[section] = value / 100;
-    // Calculate total weight
-    let total = 0;
-    for (const key in newWeights) {
-      total += newWeights[key as keyof ATSWeights];
+    
+    setLocalWeights(newWeights);
+
+    // Clear previous debounce timer
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
 
-    // Normalize weights to sum to 1.0
-    if (total > 0) {
-      const normalized: ATSWeights = { ...newWeights };
-      for (const key in normalized) {
-        normalized[key as keyof ATSWeights] = newWeights[key as keyof ATSWeights] / total;
+    // Debounce the expensive calculations
+    debounceRef.current = setTimeout(async () => {
+      // Calculate total weight
+      let total = 0;
+      for (const key in newWeights) {
+        total += newWeights[key as keyof ATSWeights];
       }
-      setWeights(normalized);
-    }
-  };
+
+      // Normalize weights to sum to 1.0
+      if (total > 0) {
+        const normalized: ATSWeights = { ...newWeights };
+        for (const key in normalized) {
+          normalized[key as keyof ATSWeights] = key != section ? newWeights[key as keyof ATSWeights] / total : newWeights[section];
+        }
+        setWeights(normalized);
+        const score = calculateDynamicATSScore(analysis, normalized);
+        setCalculatedScore(Math.round(score));
+        setLocalWeights(normalized); // Sync local state with normalized weights
+
+        const resume_hash = params.get('resume_hash') 
+        const jd_hash = params.get('jd_hash')
+
+        if (!resume_hash || !jd_hash) {
+          return
+        }
+
+        await authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/set-score`, {
+          method: 'POST',
+          body: JSON.stringify({
+            resume_hash: resume_hash,
+            jd_hash: jd_hash,
+            score: Math.round(score),
+            weights: JSON.stringify(normalized)
+          }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+      }
+    }, 100); // 100ms debounce
+
+  }, [localWeights, analysis, setWeights, setCalculatedScore]);
+  // Sync local weights when props change
+
+
+  useEffect(() => {
+
+    setLocalWeights(weights);
+    if(!weights) return;
+    const score = calculateDynamicATSScore(analysis, weights);
+    setCalculatedScore(Math.round(score));
+  }, [weights]);
+
+
   const getSectionKey = (sectionName: string): keyof ATSWeights => {
     const keyMap: Record<string, keyof ATSWeights> = {
       'Education': 'education',
@@ -103,9 +127,9 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
     };
     return keyMap[sectionName] || 'education';
   };
-
   const resetToDefaults = () => {
     setWeights(defaultWeights);
+    setLocalWeights(defaultWeights);
   };
 
   if (!analysis) {
@@ -119,6 +143,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
   }
   // Calculate individual section scores
   const getSectionScores = (): SectionScore[] => {
+    if(!localWeights) return [];
     const educationScore = calculateEducationScore(analysis);
     const workExperienceScore = calculateWorkExperienceScore(analysis);
     const projectScore = calculateProjectScore(analysis);
@@ -126,14 +151,12 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
     const certificationScore = calculateCertificationScore(analysis);
     const summaryScore = calculateSummaryScore(analysis);    // Calculate combined skills score (60% skills, 40% projects)
     const combinedSkillsScore = (0.6 * skillsScore + 0.4 * projectScore);
-
-
     return [
       {
         name: "Education",
         score: w['education'] > 0 ? Math.round(educationScore * 100) : 0,
-        weight: weights.education,
-        weightedScore: educationScore * weights.education * 100,
+        weight: localWeights.education,
+        weightedScore: educationScore * localWeights.education * 100,
         icon: <GraduationCap className="h-5 w-5" />,
         details: getEducationDetails(analysis),
         description: "Academic qualifications, degree relevance, and institution quality"
@@ -141,16 +164,16 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
       {
         name: "Work Experience",
         score: w['workExperience'] > 0 ? Math.round(workExperienceScore * 100) : 0,
-        weight: weights.workExperience,
-        weightedScore: workExperienceScore * weights.workExperience * 100,
+        weight: localWeights.workExperience,
+        weightedScore: workExperienceScore * localWeights.workExperience * 100,
         icon: <Briefcase className="h-5 w-5" />,
         details: getWorkExperienceDetails(analysis),
         description: "Job history relevance, years of experience, and role alignment"
       }, {
         name: "Skills & Projects",
         score: w['skills'] > 0 ? Math.round(combinedSkillsScore * 100) : 0,
-        weight: weights.skills,
-        weightedScore: (skillsScore + projectScore) * weights.skills * 100,
+        weight: localWeights.skills,
+        weightedScore: (skillsScore + projectScore) * localWeights.skills * 100,
         icon: <Brain className="h-5 w-5" />,
         details: [...getSkillsDetails(analysis), ...getProjectDetails(analysis)],
         description: "Technical skills, projects, and demonstrated expertise"
@@ -158,8 +181,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
       {
         name: "Certifications",
         score: w['certification'] > 0 ? Math.round(certificationScore * 100) : 0,
-        weight: weights.certifications,
-        weightedScore: certificationScore * weights.certifications * 100,
+        weight: localWeights.certifications,        weightedScore: certificationScore * localWeights.certifications * 100,
         icon: <Ribbon className="h-5 w-5" />,
         details: getCertificationDetails(analysis),
         description: "Professional certifications and industry credentials"
@@ -167,8 +189,8 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
       {
         name: "Summary",
         score: w['summary'] > 0 ? Math.round(summaryScore * 100) : 0,
-        weight: weights.summary,
-        weightedScore: summaryScore * weights.summary * 100,
+        weight: localWeights.summary,
+        weightedScore: summaryScore * localWeights.summary * 100,
         icon: <FileText className="h-5 w-5" />,
         details: getSummaryDetails(analysis),
         description: "Resume summary quality, keyword optimization, and customization"
@@ -177,7 +199,6 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
   };
 
   const sectionScores = getSectionScores();
-  console.log(sectionScores)
   return (
     <div className="space-y-6">      {/* Overall Score */}
       <ATSScoreDisplay
@@ -192,6 +213,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,w 
         onWeightChange={handleWeightChange}
         onResetToDefaults={resetToDefaults}
         getSectionKey={getSectionKey}
+        
       />
 
       {/* Formula Explanation */}

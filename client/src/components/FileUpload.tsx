@@ -11,7 +11,7 @@ interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = ({ 
   onFileSelect, 
-  accept = ".pdf,.doc,.docx", 
+  accept = ".pdf", 
   label 
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

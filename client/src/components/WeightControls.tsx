@@ -2,18 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings } from "lucide-react";
+import { memo } from "react";
 
 import { ATSWeights } from '@/lib/atsCalculations';
-
-interface SectionScore {
-  name: string;
-  score: number;
-  weight: number;
-  weightedScore: number;
-  icon: React.ReactNode;
-  details: string[];
-  description: string;
-}
+import { Slider } from "./ui/slider";
 
 interface WeightControlsProps {
   sectionScores: SectionScore[];
@@ -22,7 +14,7 @@ interface WeightControlsProps {
   getSectionKey: (sectionName: string) => keyof ATSWeights;
 }
 
-export function WeightControls({ 
+export const WeightControls = memo(function WeightControls({ 
   sectionScores, 
   onWeightChange, 
   onResetToDefaults, 
@@ -37,23 +29,20 @@ export function WeightControls({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4">
-          {sectionScores.map((section, index) => (
-            <div key={index} className="space-y-2">
+        <div className="grid gap-4"> 
+         {sectionScores.map((section) => (
+            <div key={section.name} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {section.icon}
                   <span className="font-medium">{section.name}</span>
                 </div>
                 <span className="text-sm text-gray-600">{(section.weight * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={section.weight * 100}
-                onChange={(e) => onWeightChange(getSectionKey(section.name), parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              </div>               <Slider
+                max={100}
+                step={1}
+                value={[Math.round(section.weight * 100)]}
+                onValueChange={(value) => onWeightChange(getSectionKey(section.name), value[0])}
               />
               <p className="text-xs text-gray-500">{section.description}</p>
             </div>
@@ -67,7 +56,6 @@ export function WeightControls({
             </button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </CardContent>    </Card>
   );
-}
+});

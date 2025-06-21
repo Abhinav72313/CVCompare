@@ -80,8 +80,6 @@ def get_rag_chain(llm, vector_store, user_id, resume_hash, jd_hash):
         },
     )
 
-    print(f"JD Retriever: {jd_retriever}")
-    print(f"Resume Retriever: {resume_retriever}")
     # Combine both retrievers
     retriever = CombinedRetriever(jd_retriever, resume_retriever)
 
