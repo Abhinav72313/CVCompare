@@ -8,7 +8,7 @@ from .vector_store import get_vector_store
 from .database import mongodb
 from .webhooks import webhook_router
 from contextlib import asynccontextmanager
-from .router import user,analysis,chat
+from .router import user,analysis,chat,health
 from .middleware.authMiddleware import auth_middleware  
 
 load_dotenv()
@@ -72,4 +72,5 @@ async def root(request: Request):
 app.include_router(user.router)
 app.include_router(analysis.router)
 app.include_router(chat.router)
+app.include_router(health.router)
 

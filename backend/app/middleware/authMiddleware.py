@@ -22,7 +22,7 @@ async def auth_middleware(request: Request, call_next):
     # Skip authentication for certain paths
     skip_paths = ["/webhooks", "/health", "/docs", "/redoc", "/openapi.json"]
 
-    if any(request.url.path.startswith(path) for path in skip_paths):
+    if any(request.url.path.startswith(path) or request.url.path == '/' for path in skip_paths):
         return await call_next(request)
 
     auth_header = request.headers.get("Authorization")
