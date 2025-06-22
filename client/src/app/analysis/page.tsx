@@ -100,13 +100,6 @@ export default function AnalysisPage() {
 
     const [calculatedScore, setCalculatedScore] = useState(0);
 
-    const [w, setw] = useState<{ [key: string]: number }>({
-        'education': 0,
-        'workExperience': 0,
-        'skills': 0,
-        'certifications': 0,
-        'summary': 0
-    })
     const { isSignedIn } = useUser()
     const authfetch = useAuthenticatedFetch()
     const { setJDHash, setResumeHash, setChatHistory } = useFileContext()
@@ -281,8 +274,6 @@ export default function AnalysisPage() {
                     'certifications': analysis.certifications?.required_certs_in_jd?.length ? 1 : 0,
                     'summary': analysis.summary?.intent_matches_jd ? 1 : 0
                 }
-
-                setw(w);
 
                 const normalizedWeights: ATSWeights = { ...defaultWeights };
 
@@ -466,7 +457,7 @@ export default function AnalysisPage() {
                                     </TabsContent>
                                     <TabsContent value="Calculation" className='overflow-y-auto pb-1 pr-2 max-h-[calc(100vh-200px)]'>
                                         <Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 rounded"></div>}>
-                                            <ATSCalculation analysis={analysis} setCalculatedScore={setCalculatedScore} weights={weights} setWeights={setWeights} w={w} calculatedScore={calculatedScore} />
+                                            <ATSCalculation analysis={analysis} setCalculatedScore={setCalculatedScore} weights={weights} setWeights={setWeights} calculatedScore={calculatedScore} />
                                         </Suspense>
                                     </TabsContent>
                                     <TabsContent value="Chat" className='overflow-y-auto pb-1 pr-2 max-h-[calc(100vh-200px)]'>

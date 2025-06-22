@@ -35,11 +35,10 @@ interface ATSCalculationProps {
   calculatedScore: number;
   weights: ATSWeights|null;
   setWeights: (weights: ATSWeights) => void;
-  w: { [key: string]: number };
   setCalculatedScore: (score: number) => void;
 }
 
-export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,setCalculatedScore,w }: ATSCalculationProps) {
+export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,setCalculatedScore}: ATSCalculationProps) {
   // Debounce timer ref
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   // Local state for immediate UI updates
@@ -154,7 +153,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
     return [
       {
         name: "Education",
-        score: w['education'] > 0 ? Math.round(educationScore * 100) : 0,
+        score: localWeights['education'] > 0 ? Math.round(educationScore * 100) : 0,
         weight: localWeights.education,
         weightedScore: educationScore * localWeights.education * 100,
         icon: <GraduationCap className="h-5 w-5" />,
@@ -163,7 +162,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
       },
       {
         name: "Work Experience",
-        score: w['workExperience'] > 0 ? Math.round(workExperienceScore * 100) : 0,
+        score: localWeights['workExperience'] > 0 ? Math.round(workExperienceScore * 100) : 0,
         weight: localWeights.workExperience,
         weightedScore: workExperienceScore * localWeights.workExperience * 100,
         icon: <Briefcase className="h-5 w-5" />,
@@ -171,7 +170,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
         description: "Job history relevance, years of experience, and role alignment"
       }, {
         name: "Skills & Projects",
-        score: w['skills'] > 0 ? Math.round(combinedSkillsScore * 100) : 0,
+        score: localWeights['skills'] > 0 ? Math.round(combinedSkillsScore * 100) : 0,
         weight: localWeights.skills,
         weightedScore: (skillsScore + projectScore) * localWeights.skills * 100,
         icon: <Brain className="h-5 w-5" />,
@@ -180,7 +179,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
       },
       {
         name: "Certifications",
-        score: w['certification'] > 0 ? Math.round(certificationScore * 100) : 0,
+        score: localWeights['certifications'] > 0 ? Math.round(certificationScore * 100) : 0,
         weight: localWeights.certifications,        weightedScore: certificationScore * localWeights.certifications * 100,
         icon: <Ribbon className="h-5 w-5" />,
         details: getCertificationDetails(analysis),
@@ -188,7 +187,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
       },
       {
         name: "Summary",
-        score: w['summary'] > 0 ? Math.round(summaryScore * 100) : 0,
+        score: localWeights['summary'] > 0 ? Math.round(summaryScore * 100) : 0,
         weight: localWeights.summary,
         weightedScore: summaryScore * localWeights.summary * 100,
         icon: <FileText className="h-5 w-5" />,
