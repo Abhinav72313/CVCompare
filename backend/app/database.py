@@ -2,7 +2,9 @@ import os
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
-from models import User, ResumeAnalysis,ChatMessage
+from .models.user import User
+from .models.resume import ResumeAnalysis
+from .models.chat import ChatMessage
 
 class MongoDB:
     client: Optional[AsyncIOMotorClient] = None
@@ -17,7 +19,7 @@ class MongoDB:
             raise ValueError("MONGODB_URI environment variable is required")
         
         try:
-            cls.client = AsyncIOMotorClient(mongodb_uri)
+            cls.client = AsyncIOMotorClient(mongodb_uri,serverSelectionTimeoutMS=30000)
             
             db_name = 'CVCompare' 
                 

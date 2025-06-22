@@ -8,39 +8,28 @@ from langchain.schema import Document
 from typing import List, Any
 from pydantic import Field
 
+system_prompt = """
+You are an expert resume evaluator.
 
-class CombinedRetriever(BaseRetriever):
-    """Custom retriever that combines job description and resume retrievers."""
+Based on the following resume and job description (provided as context), answer the user's question.
 
-    jd_retriever: Any = Field(description="Job description retriever")
-    resume_retriever: Any = Field(description="Resume retriever")
+Only use the information available in the context. Do not say things like:
+- "I need to see the resume"
+- "I need to see the job description"
+- "I need to see the context"
 
-    def __init__(self, jd_retriever, resume_retriever, **kwargs):
-        super().__init__(
-            jd_retriever=jd_retriever, resume_retriever=resume_retriever, **kwargs
-        )
+Keep your response concise and relevant. Do not answer questions unrelated to the resume or job description.
 
-    def _get_relevant_documents(self, query: str) -> List[Document]:
-        """Retrieve relevant documents from both JD and resume sources."""
-        jd_docs = self.jd_retriever.invoke(query)
-        resume_docs = self.resume_retriever.invoke(query)
-        return jd_docs + resume_docs
+You MUST only answer questions related to the provided resume and job description.
 
-    async def _aget_relevant_documents(self, query: str) -> List[Document]:
-        """Async version of get_relevant_documents."""
-        jd_docs = await self.jd_retriever.ainvoke(query)
-        resume_docs = await self.resume_retriever.ainvoke(query)
-        return jd_docs + resume_docs
+DO NOT answer questions unrelated to resumes, jobs, or careers.
 
+Only use the provided context. If the question is unrelated or you don't know the answer, respond with:
+> "Sorry, I can only assist with questions related to your resume or the job description."
 
-system_prompt = (
-    "You are an assistant for question-answering tasks. "
-    "Use the following pieces of retrieved context to answer "
-    "the question. If you don't know the answer, say that you "
-    "don't know. keep the  answer concise."
-    "\n\n"
-    "{context}"
-)
+Context:
+{context}
+"""
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -49,6 +38,7 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{input}"),
     ]
 )
+
 
 contextualize_q_system_prompt = (
     "Given a chat history and the latest user question "
@@ -67,6 +57,32 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages(
 )
 
 
+class CombinedRetriever(BaseRetriever):
+    """Custom retriever that combines job description and resume retrievers."""
+
+    jd_retriever: Any = Field(description="Job description retriever")
+    resume_retriever: Any = Field(description="Resume retriever")
+
+    def __init__(self, jd_retriever, resume_retriever, **kwargs):
+        super().__init__(
+            jd_retriever=jd_retriever, resume_retriever=resume_retriever, **kwargs
+        )
+
+    def _get_relevant_documents(self, query: str) -> List[Document]:
+        """Retrieve relevant documents from both JD and resume sources."""
+        jd_docs = self.jd_retriever.invoke(query)
+        resume_docs = self.resume_retriever.invoke(query)
+        
+        return jd_docs + resume_docs
+
+    async def _aget_relevant_documents(self, query: str) -> List[Document]:
+        """Async version of get_relevant_documents."""
+        jd_docs = await self.jd_retriever.ainvoke(query)
+        resume_docs = await self.resume_retriever.ainvoke(query)
+        return jd_docs + resume_docs
+
+
+
 def get_rag_chain(llm, vector_store, user_id, resume_hash, jd_hash):
     
     jd_retriever = vector_store.as_retriever(
@@ -75,7 +91,7 @@ def get_rag_chain(llm, vector_store, user_id, resume_hash, jd_hash):
 
     resume_retriever = vector_store.as_retriever(
         search_kwargs={
-            "k": 3,
+            "k": 5,
             "filter": {"user_id": user_id, "content_hash": resume_hash},
         },
     )

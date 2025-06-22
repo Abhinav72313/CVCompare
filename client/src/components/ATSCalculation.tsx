@@ -88,7 +88,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
           return
         }
 
-        await authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/set-score`, {
+        await authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analysis/set-score`, {
           method: 'POST',
           body: JSON.stringify({
             resume_hash: resume_hash,
@@ -104,7 +104,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
       }
     }, 100); // 100ms debounce
 
-  }, [localWeights, analysis, setWeights, setCalculatedScore]);
+  }, [localWeights, setWeights, analysis, setCalculatedScore, params, authfetch]);
   // Sync local weights when props change
 
 

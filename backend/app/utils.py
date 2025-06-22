@@ -11,7 +11,10 @@ import json
 import tempfile
 import os
 from io import BytesIO
-from models import QueryResumeAnalysis, ResumeAnalysis, User, UserCreate, UserUpdate, ChatMessage
+from .models.chat import ChatMessage
+from .models.resume import ResumeAnalysis, QueryResumeAnalysis
+from .models.user import User,UserCreate,UserUpdate 
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +51,6 @@ def get_analysis(
         print(e)
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-
 async def extract_text_from_pdf(pdf_file: UploadFile) -> str:
     """Extract text content from uploaded PDF file."""
     try:
@@ -70,7 +72,6 @@ async def extract_text_from_pdf(pdf_file: UploadFile) -> str:
 
     finally:
         os.remove(temp_pdf_path)  # Clean up temporary file
-
 
 def add_to_vector_store(
     id,
@@ -161,10 +162,7 @@ def add_to_vector_store(
             status_code=500, detail=f"Failed to add to vector store: {str(e)}"
         )
 
-
-async def get_analysis_by_hashes(
-    user_id: str, resume_hash: str, jd_hash: str
-) -> Optional[ResumeAnalysis]:
+async def get_analysis_by_hashes( user_id: str, resume_hash: str, jd_hash: str) -> Optional[ResumeAnalysis]:
     """Get existing analysis by resume and job description hashes"""
     try:
         return await ResumeAnalysis.find_one(
@@ -195,7 +193,6 @@ async def get_user_by_clerk_id(clerk_user_id: str) -> Optional[User]:
         logger.error(f"Error getting user by clerk_id: {e}")
         return None
 
-
 async def create_user(user_data: UserCreate) -> User:
     """Create a new user"""
     try:
@@ -206,7 +203,6 @@ async def create_user(user_data: UserCreate) -> User:
     except Exception as e:
         logger.error(f"Error creating user: {e}")
         return None
-
 
 async def update_user(clerk_user_id: str, user_data: UserUpdate) -> Optional[User]:
     """Update user information"""
@@ -224,7 +220,6 @@ async def update_user(clerk_user_id: str, user_data: UserUpdate) -> Optional[Use
     except Exception as e:
         logger.error(f"Error updating user: {e}")
         return None
-
 
 async def delete_user(clerk_user_id: str) -> bool:
     """Delete user and all associated data"""
@@ -276,8 +271,6 @@ async def get_chat_history_for_user(user_id: str, resume_hash: str, jd_hash: str
     except Exception as e:
         logger.error(f"Error getting chat history for RAG: {e}")
         return []
-
-
 
 async def download_file_from_url(file_url: str, filename: str = None) -> UploadFile:
     """

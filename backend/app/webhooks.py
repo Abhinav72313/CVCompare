@@ -1,11 +1,11 @@
 import os
-from fastapi import APIRouter, Request, Response,HTTPException,status
-from models import UserCreate, UserUpdate
+from fastapi import APIRouter, Request, Response,status
+from .models.user import UserCreate, UserUpdate
 import json
 import logging
 from svix.webhooks import Webhook
 from dotenv import load_dotenv
-from utils import get_user_by_clerk_id,create_user,update_user,delete_user
+from .utils import get_user_by_clerk_id,create_user,update_user,delete_user
 
 load_dotenv()
 

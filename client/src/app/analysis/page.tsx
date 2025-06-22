@@ -121,7 +121,7 @@ export default function AnalysisPage() {
         setResumeHash(search.get('resume_hash'))
         setJDHash(search.get('jd_hash'))
 
-        authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get-analysis`, {
+        authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analysis/get-analysis`, {
             method: 'POST',
             body: JSON.stringify({
                 resume_hash: search.get('resume_hash'),
@@ -195,14 +195,12 @@ export default function AnalysisPage() {
             setAnalysis(resumeAnalysisSchema.parse(res.analysis));
             setJobDescription(res.job_description);
 
-            if (res.weights) {
-                setWeights(res.weights)
-            } 
-
             if (res.score) {
                 setCalculatedScore(res.score)
             }
-
+            if (res.weights) {
+                setWeights(res.weights)
+            }
 
         }).catch(err => {
             console.log('Error fetching analysis:', err);
@@ -214,7 +212,11 @@ export default function AnalysisPage() {
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
+
+        const search = new URLSearchParams(window.location.search)
+
         // Clear previous timeout
+
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
         }
@@ -302,6 +304,21 @@ export default function AnalysisPage() {
                 setWeights(normalizedWeights)
                 const score = Math.round(calculateDynamicATSScore(analysis, normalizedWeights));
                 setCalculatedScore(score);
+                const resume_hash = search.get('resume_hash');
+                const jd_hash = search.get('jd_hash');
+
+                if (!resume_hash || !jd_hash) {
+                    return;
+                }
+                authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analysis/set-score`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        resume_hash: resume_hash,
+                        jd_hash: jd_hash,
+                        score: score,
+                        weights: JSON.stringify(normalizedWeights)
+                    }),
+                })
             } else {
                 const score = Math.round(calculateDynamicATSScore(analysis, weights));
                 setCalculatedScore(score);
@@ -314,7 +331,7 @@ export default function AnalysisPage() {
                 clearTimeout(debounceTimeoutRef.current);
             }
         };
-    }, [analysis, weights])
+    }, [analysis, authfetch, weights])
 
 
     const getScoreColor = (score: number) => {

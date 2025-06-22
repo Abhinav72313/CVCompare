@@ -47,7 +47,7 @@ export default function UploadPage() {
 
     try {
 
-      const response = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analyze-resume`, {
+      const response = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analysis/analyze-resume`, {
         method: 'POST',
         body: formData,
         headers: {
