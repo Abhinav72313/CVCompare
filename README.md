@@ -47,6 +47,12 @@ CVCompare helps job seekers optimize their resumes for Applicant Tracking System
 - **Authentication**: JWT token validation with Clerk integration
 - **Vector Store**: Semantic search capabilities for enhanced matching
 - **API Design**: RESTful endpoints with comprehensive error handling
+- **Architecture**: Modular design with separated concerns:
+  - **Routers**: Handle API endpoints and request routing
+  - **Models**: Define data schemas and database models
+  - **Middleware**: Process authentication and request validation
+  - **Shared Resources**: Singleton LLM and vector store instances
+  - **Utils**: Common helper functions and utilities
 
 ### 🎨 **Frontend** (`/client`)
 - **Framework**: Next.js 15 with App Router and TypeScript
@@ -229,19 +235,31 @@ yarn build && yarn start
 CVCompare/
 ├── 📁 backend/                          # FastAPI Backend Application
 │   ├── 📄 requirements.txt             # Python dependencies
-│   ├── 📄 prompt.txt                   # AI analysis prompt template
-│   ├── 📄 system_prompt.txt            # AI system prompt configuration
-│   ├── 📁 __pycache__/                 # Python bytecode cache
+│   ├── 📄 .env                         # Environment variables
 │   └── 📁 app/                         # Main application package
-│       ├── 📄 app.py                   # FastAPI application & routes
+│       ├── 📄 main.py                  # FastAPI application entry point
 │       ├── 📄 database.py              # MongoDB connection & configuration
-│       ├── 📄 middleware.py            # Authentication & CORS middleware
-│       ├── 📄 models.py                # Pydantic models & schemas
 │       ├── 📄 rag.py                   # RAG (Retrieval-Augmented Generation)
+│       ├── 📄 shared_resources.py      # Shared LLM & vector store access
 │       ├── 📄 utils.py                 # Utility functions & helpers
 │       ├── 📄 vector_store.py          # Vector database operations
 │       ├── 📄 webhooks.py              # Webhook handlers
-│       └── 📁 __pycache__/             # Python bytecode cache
+│       ├── 📁 middleware/              # Middleware components
+│       │   ├── 📄 __init__.py          # Package initialization
+│       │   ├── 📄 authMiddleware.py    # Authentication middleware
+│       ├── 📁 models/                  # Data models & schemas
+│       │   ├── 📄 __init__.py          # Package initialization
+│       │   ├── 📄 chat.py              # Chat conversation models
+│       │   ├── 📄 resume.py            # Resume analysis models
+│       │   ├── 📄 user.py              # User account models
+│       └── 📁 router/                  # API route handlers
+│           ├── 📄 __init__.py          # Package initialization & router exports
+│           ├── 📄 analysis.py          # Resume analysis endpoints
+│           ├── 📄 chat.py              # AI chat endpoints
+│           ├── 📄 health.py            # Health check endpoints
+│           ├── 📄 user.py              # User management endpoints
+│           ├── 📄 prompt.txt           # AI analysis prompt template
+│           ├── 📄 system_prompt.txt    # AI system prompt configuration
 │
 ├── 📁 client/                          # Next.js Frontend Application
 │   ├── 📄 package.json                # Node.js dependencies & scripts
@@ -405,30 +423,6 @@ export const DEFAULT_WEIGHTS = {
   summary: 10        // Professional summary quality
 };
 ```
-
-#### 🤖 **AI Prompts**
-Customize AI behavior by editing:
-- `backend/prompt.txt`: Main analysis prompt template
-- `backend/system_prompt.txt`: System-level AI instructions
-
-#### 🎨 **UI Styling**
-- **Global Styles**: `client/src/app/globals.css`
-- **Component Styles**: Individual component files with Tailwind classes
-- **Theme Configuration**: `client/tailwind.config.ts`
-
-#### 📊 **Scoring Thresholds**
-Adjust score ranges in `client/src/lib/atsCalculations.ts`:
-```typescript
-export const SCORE_THRESHOLDS = {
-  excellent: 90,
-  veryGood: 80,
-  good: 70,
-  fair: 60,
-  poor: 0
-};
-```
-
-
 ### Performance Optimization
 
 #### Backend Optimization
