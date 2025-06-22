@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CVCompare",
-  description: "",
+  description: "Analyze and compare resumes against job descriptions.",
 };
 
 export default function RootLayout({
