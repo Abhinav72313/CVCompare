@@ -51,7 +51,7 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
     setIsLoading(true);
 
     const res = await authfetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/chat`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/chat/message`,
       {
         method: "POST",
         headers: {

@@ -44,8 +44,6 @@ async def lifespan(app: FastAPI):
     await mongodb.close_mongo_connection()
 
 
-allowed_origin = os.getenv("ALLOWED_ORIGIN")
-
 app = FastAPI(title="CVCompare API", version="1.0.0", lifespan=lifespan)
 
 # Add CORS middleware to allow requests from the frontend

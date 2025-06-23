@@ -37,7 +37,7 @@ async def get_chat_history(request: Request, resume_hash: str, jd_hash: str):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-@router.post("/")
+@router.post("/message")
 async def query(request: Request):
 
     try:        # Get LLM and vector store from app state
