@@ -173,7 +173,7 @@ export default function AnalysisPage() {
             if (chatHisotry.length == 0) {
                 chatHisotry.push({
                     id: Date.now().toString(),
-                    role: "Assistant",
+                    role: "assistant",
                     message: "Welcome to the ATS analysis chat! You can ask me questions about your resume and job description.",
                     created_at: new Date(),
                     user_id: null,
@@ -444,8 +444,9 @@ export default function AnalysisPage() {
                                             </p>
                                         </CardContent>
                                     </Card>
-                                </div>                                <Tabs defaultValue="Analysis" className="w-full ">
-                                    <TabsList className='w-full '>
+                                </div>                                
+                                <Tabs defaultValue="Analysis" className="w-full ">
+                                    <TabsList className='w-full border-b-2 shadow-lg border-border'>
                                         <TabsTrigger value="Analysis">Analysis</TabsTrigger>
                                         <TabsTrigger value="Calculation">Calculation</TabsTrigger>
                                         <TabsTrigger value="Chat">Chat</TabsTrigger>

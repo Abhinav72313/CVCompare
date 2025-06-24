@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pt-12">
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
@@ -18,24 +18,26 @@ export default function HomePage() {
             <span className="text-blue-600"> Any Job</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            AI-powered resume analysis that helps you tailor your resume to specific job descriptions, 
+            AI-powered resume analysis that helps you tailor your resume to specific job descriptions,
             increasing your chances of landing interviews.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/upload">
-              <Button size="lg" className="px-8 py-3">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center px-8">
+            <Link href="/upload" >
+              <Button size="lg" className="px-8 py-3 w-52">
                 Analyze Resume Now
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="px-8 py-3">
-              Learn More
-            </Button>
+            <Link href='#'>
+              <Button variant="outline" size="lg" className="w-52 px-8 py-3">
+                Learn More
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
-
       {/* Features Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">        <div className="text-center mb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Why Choose CVCompare?
           </h2>
@@ -52,7 +54,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600">
-                AI-powered analysis that compares your resume against job descriptions 
+                AI-powered analysis that compares your resume against job descriptions
                 and identifies missing keywords and skills.
               </p>
             </CardContent>
@@ -65,7 +67,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600">
-                Optimize your resume for Applicant Tracking Systems with 
+                Optimize your resume for Applicant Tracking Systems with
                 detailed scoring and improvement suggestions.
               </p>
             </CardContent>
@@ -78,7 +80,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600">
-                Get immediate feedback with actionable recommendations 
+                Get immediate feedback with actionable recommendations
                 to improve your resume&apos;s effectiveness.
               </p>
             </CardContent>
@@ -97,7 +99,7 @@ export default function HomePage() {
                 Continue improving your resume or view your analysis history
               </p>
             </div>
-            
+
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <Card className="text-center">
                 <CardHeader>
@@ -157,13 +159,15 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">          <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
             <div className="flex items-center">
               <FileText className="h-6 w-6" />
               <span className="ml-2 font-semibold">CVCompare</span>
             </div>
             <p className="text-gray-400">
-              © 2025 CVCompare. All rights reserved.            </p>
+              © 2025 CVCompare. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

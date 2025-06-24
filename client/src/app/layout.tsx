@@ -35,9 +35,12 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           <Navbar />
-          <FileProvider>
-            {children}
-          </FileProvider>
+          <main className="pt-16">
+
+            <FileProvider>
+              {children}
+            </FileProvider>
+          </main>
           <Toaster />
         </body>
       </html>

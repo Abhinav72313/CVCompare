@@ -18,6 +18,7 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
   const { chatHistory, setChatHistory } = useFileContext();
   const [currentMessage, setCurrentMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [clearIsLoading, setClearIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const authfetch = useAuthenticatedFetch();
   const { resumeHash, jdHash } = useFileContext();
@@ -30,6 +31,41 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory]);
+
+  const handleClearChat = async () => {
+    if (!user) return alert("Please sign in to clear chat");
+
+    setClearIsLoading(true);
+
+    const res = await authfetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/chat/clear`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          resume_hash: resumeHash, // Pass the resume hash
+          jd_hash: jdHash, // Pass the job description hash
+        }),
+      }
+    );
+
+    if (res.ok) {
+      setChatHistory([{
+        id: Date.now().toString(),
+        role: "assistant",
+        message: "Welcome to the ATS analysis chat! You can ask me questions about your resume and job description.",
+        created_at: new Date(),
+        user_id: null,
+        resume_hash: resumeHash,
+        jd_hash: jdHash
+      }]);
+    }
+
+    setClearIsLoading(false);
+  }
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return;
@@ -106,7 +142,20 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
   return (
     <Card className={`h-full flex flex-col ${className}`}>
       <CardHeader className="border-b-2">
-        <CardTitle className="text-lg">Resume Assistant</CardTitle>
+        <CardTitle className="text-lg  flex justify-between">
+          <p>
+            Resume Assistant
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearChat}
+            disabled={isLoading || clearIsLoading}
+          >
+            Clear Chat
+          </Button>
+
+        </CardTitle>
       </CardHeader>{" "}
       <CardContent className="flex-1 flex flex-col p-0">
         {/* Messages Area */}
@@ -114,26 +163,23 @@ export default function ChatInterface({ className }: ChatInterfaceProps) {
           {chatHistory.map((message) => (
             <div
               key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"
+                }`}
             >
               <div
-                className={` rounded-lg p-3 ${
-                  message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-900 "
-                }`}
+                className={` rounded-lg p-3 ${message.role === "user"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-100 text-gray-900 "
+                  }`}
               >
                 <div className="text-sm whitespace-pre-wrap">
                   <Markdown>{message.message}</Markdown>
                 </div>
                 <p
-                  className={`text-xs mt-1 ${
-                    message.role === "user" ? "text-blue-100" : "text-gray-500"
-                  }`}
+                  className={`text-xs mt-1 ${message.role === "user" ? "text-blue-100" : "text-gray-500"
+                    }`}
                 >
-                  {message.created_at.toLocaleTimeString()}
+                  {message.created_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                 </p>
               </div>
             </div>

@@ -10,13 +10,15 @@ export default function Navbar() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
-        <nav className="bg-white border-b border-gray-200 shadow-sm">
+        <nav className="bg-white border-b border-gray-200 shadow-sm z-50 fixed w-full h-16">
             <div className=" mx-auto sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
-                    {/* Logo/Brand */}                    <Link href="/" className="flex items-center space-x-2">
+                    {/* Logo/Brand */}                
+                    <Link href="/" className="flex items-center space-x-2">
                         <FileText className="h-8 w-8 text-blue-600" />
                         <span className="font-bold text-xl text-gray-900">CVCompare</span>
-                    </Link>{/* Navigation Links */}
+                    </Link>
+                    {/* Navigation Links */}
                     <div className="hidden md:flex items-center space-x-8">
                         <SignedIn>
                             <Link
@@ -90,36 +92,31 @@ export default function Navbar() {
 
                 {/* Mobile Navigation Menu */}
                 {isMobileMenuOpen && (
-                    <div className="md:hidden border-t border-gray-200 pt-4 pb-3">
-                        <div className="flex flex-col space-y-2">
+                    <div className="md:hidden border-t border-gray-200  fixed top-16 bg-background w-full">
+
+                        <div className="flex flex-col h-full">
                             <Link
                                 href="/"
-                                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                className="text-gray-700 hover:text-blue-600 px-3 py-2 border-b-2 hover:bg-accent  text-sm font-medium transition-colors"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 Home
                             </Link>                            <SignedIn>
                                 <Link
                                     href="/upload"
-                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                    className="text-gray-700 border-b-2 hover:text-blue-600 px-3 py-2 hover:bg-accent  text-sm font-medium transition-colors"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     Upload Resume
                                 </Link>
                                 <Link
                                     href="/history"
-                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                    className="text-gray-700 hover:bg-accent hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     History
                                 </Link>
-                                <Link
-                                    href="/analysis"
-                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Analysis
-                                </Link>
+                               
                             </SignedIn>
                         </div>
                     </div>

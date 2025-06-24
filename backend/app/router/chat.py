@@ -152,3 +152,44 @@ async def query(request: Request):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+@router.post("/clear")
+async def clear_chat(request:Request):
+    try:
+    
+        user_id = request.state._state.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=401, detail="Unauthorized: User not authenticated"
+            )
+
+        data = await request.json()
+
+        if "resume_hash" not in data:
+            raise HTTPException(
+                status_code=400, detail="Query must include 'resume_hash' field"
+            )
+
+        if "jd_hash" not in data:
+            raise HTTPException(
+                status_code=400, detail="Query must include 'jd_hash' field"
+            )
+
+        resume_hash = data["resume_hash"]
+        jd_hash = data["jd_hash"]
+
+        session_key = f"{user_id}_{resume_hash}_{jd_hash}"
+
+        if session_key in user_chains:
+            del user_chains[session_key]
+
+        # Optionally clear chat history from database
+        await ChatMessage.find_all(user_id=user_id, resume_hash=resume_hash, jd_hash=jd_hash).delete()
+        user_chains[session_key]["chat_history"] = []
+        
+        return {"message": "Chat cleared successfully"}
+    except Exception as e:
+        print("Error clearing chat:", e)
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
