@@ -64,9 +64,9 @@ class CombinedRetriever(BaseRetriever):
     resume_retriever: Any = Field(description="Resume retriever")
 
     def __init__(self, jd_retriever, resume_retriever, **kwargs):
-        super().__init__(
-            jd_retriever=jd_retriever, resume_retriever=resume_retriever, **kwargs
-        )
+        super().__init__(**kwargs)
+        self.jd_retriever = jd_retriever
+        self.resume_retriever = resume_retriever
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
         """Retrieve relevant documents from both JD and resume sources."""

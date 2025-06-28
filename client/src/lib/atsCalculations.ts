@@ -72,7 +72,7 @@ export function calculateEducationScore(analysis: ResumeAnalysis): number {
   
   let gpaScore = 0;
   if (education.gpa) {
-    const gpaValue = parseFloat(education.gpa);
+    const gpaValue = education.gpa
     if (!isNaN(gpaValue)) {
       gpaScore = Math.min(1, Math.max(0, gpaValue / 10.0));
     }
