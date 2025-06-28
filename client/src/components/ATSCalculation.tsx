@@ -180,7 +180,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
       {
         name: "Certifications",
         score: localWeights['certifications'] > 0 ? Math.round(certificationScore * 100) : 0,
-        weight: localWeights.certifications,        weightedScore: certificationScore * localWeights.certifications * 100,
+        weight: localWeights.certifications, weightedScore: certificationScore * localWeights.certifications * 100,
         icon: <Ribbon className="h-5 w-5" />,
         details: getCertificationDetails(analysis),
         description: "Professional certifications and industry credentials"

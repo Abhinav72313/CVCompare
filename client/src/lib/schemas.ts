@@ -9,7 +9,7 @@ export const resumeAnalysisSchema = z.object({
     required_degrees_in_jd: z.array(z.string()).nullable(),
     degree_match: z.boolean().nullable(),
     field_match: z.boolean().nullable(),
-    gpa: z.string().nullable(),
+    gpa: z.number().nullable(),
     institution: z.string().nullable(),
     institution_rank_tier: z.enum(["Tier 1", "Tier 2", "Tier 3", "Unknown"]).nullable(),
     graduation_year: z.number().nullable(),
