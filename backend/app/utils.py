@@ -11,6 +11,7 @@ import json
 import tempfile
 import os
 from io import BytesIO
+from beanie import SortDirection
 from .models.chat import ChatMessage
 from .models.resume import ResumeAnalysis, QueryResumeAnalysis
 from .models.user import User,UserCreate,UserUpdate 
@@ -88,10 +89,12 @@ def add_to_vector_store(
         # Check if this specific resume already exists
         existing_resume = vector_store.similarity_search(
             query="",
-            filter={
-                "user_id": id,
-                "document_type": "resume",
-                "content_hash": resume_hash,
+            where={
+                "$and": [
+                    {"user_id": {"$eq": id}},
+                    {"document_type": {"$eq": "resume"}},
+                    {"content_hash": {"$eq": resume_hash}}
+                ]
             },
             k=1,
         )
@@ -99,10 +102,12 @@ def add_to_vector_store(
         # Check if this specific job description already exists
         existing_job = vector_store.similarity_search(
             query="",
-            filter={
-                "user_id": id,
-                "document_type": "job_description",
-                "content_hash": job_hash,
+            where={
+                "$and": [
+                    {"user_id": {"$eq": id}},
+                    {"document_type": {"$eq": "job_description"}},
+                    {"content_hash": {"$eq": job_hash}}
+                ]
             },
             k=1,
         )
@@ -180,7 +185,7 @@ async def get_user_analyses_from_db(user_id:str,limit:int,offset:int):
         return await ResumeAnalysis.find(
             ResumeAnalysis.user_id == user_id,
             projection_model=QueryResumeAnalysis
-        ).sort(-ResumeAnalysis.created_at).skip(offset).limit(limit).to_list()
+        ).sort([("created_at", SortDirection.DESCENDING)]).skip(offset).limit(limit).to_list()
     except Exception as e:
         logger.error(f"Error getting user analyses: {e}")
         return []
@@ -193,7 +198,7 @@ async def get_user_by_clerk_id(clerk_user_id: str) -> Optional[User]:
         logger.error(f"Error getting user by clerk_id: {e}")
         return None
 
-async def create_user(user_data: UserCreate) -> User:
+async def create_user(user_data: UserCreate) -> Optional[User]:
     """Create a new user"""
     try:
         user = User(**user_data.dict())
@@ -212,7 +217,7 @@ async def update_user(clerk_user_id: str, user_data: UserUpdate) -> Optional[Use
             return None
 
         update_dict = {k: v for k, v in user_data.dict().items() if v is not None}
-        update_dict["updated_at"] = datetime.utcnow()
+        update_dict["updated_at"] = datetime.datetime.utcnow()
 
         await user.update({"$set": update_dict})
         return await User.find_one(User.clerk_user_id == clerk_user_id)
@@ -245,7 +250,7 @@ async def get_chat_history_for_rag(user_id: str, resume_hash: str, jd_hash: str)
             ChatMessage.user_id == user_id,
             ChatMessage.resume_hash == resume_hash,
             ChatMessage.jd_hash == jd_hash
-        ).sort(ChatMessage.created_at).limit(20).to_list()
+        ).sort([("created_at", SortDirection.ASCENDING)]).limit(20).to_list()
 
         history = []
         for msg in messages:
@@ -265,14 +270,14 @@ async def get_chat_history_for_user(user_id: str, resume_hash: str, jd_hash: str
             ChatMessage.user_id == user_id,
             ChatMessage.resume_hash == resume_hash,
             ChatMessage.jd_hash == jd_hash
-        ).sort(ChatMessage.created_at).limit(20).to_list()
+        ).sort([("created_at", SortDirection.ASCENDING)]).limit(20).to_list()
 
         return messages 
     except Exception as e:
         logger.error(f"Error getting chat history for RAG: {e}")
         return []
 
-async def download_file_from_url(file_url: str, filename: str = None) -> UploadFile:
+async def download_file_from_url(file_url: str, filename: Optional[str] = None) -> UploadFile:
     """
     Download a file from a URL and return an UploadFile object that can be used with extract_text_from_pdf.
     

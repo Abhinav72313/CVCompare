@@ -64,9 +64,9 @@ class CombinedRetriever(BaseRetriever):
     resume_retriever: Any = Field(description="Resume retriever")
 
     def __init__(self, jd_retriever, resume_retriever, **kwargs):
-        super().__init__(**kwargs)
-        self.jd_retriever = jd_retriever
-        self.resume_retriever = resume_retriever
+         super().__init__(
+            jd_retriever=jd_retriever, resume_retriever=resume_retriever, **kwargs # type: ignore
+        )
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
         """Retrieve relevant documents from both JD and resume sources."""
@@ -86,13 +86,26 @@ class CombinedRetriever(BaseRetriever):
 def get_rag_chain(llm, vector_store, user_id, resume_hash, jd_hash):
     
     jd_retriever = vector_store.as_retriever(
-        search_kwargs={"k": 3, "filter": {"user_id": user_id, "content_hash": jd_hash}}
+        search_kwargs={
+            "k": 3, 
+            "where": {
+                "$and": [
+                    {"user_id": {"$eq": user_id}}, 
+                    {"content_hash": {"$eq": jd_hash}}
+                ]
+            }
+        }
     )
 
     resume_retriever = vector_store.as_retriever(
         search_kwargs={
             "k": 5,
-            "filter": {"user_id": user_id, "content_hash": resume_hash},
+            "where": {
+                "$and": [
+                    {"user_id": {"$eq": user_id}}, 
+                    {"content_hash": {"$eq": resume_hash}}
+                ]
+            }
         },
     )
 
