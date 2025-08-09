@@ -46,12 +46,14 @@ export function ATSCalculation({ analysis, calculatedScore, weights, setWeights,
   const authfetch = useAuthenticatedFetch()
   const params = useSearchParams()
 
+
+
   const handleWeightChange = useCallback((section: keyof ATSWeights, value: number) => {
     if (!localWeights) return;
 
-    const newWeights = { ...localWeights };
-    // Convert % to decimal
-    newWeights[section] = value / 100;
+    // Work with integers (percentages)
+    const newWeights: Record<keyof ATSWeights, number> = { ...localWeights };
+    newWeights[section] = value; // keep fixed as user set
 
     setLocalWeights(newWeights);
 
@@ -60,46 +62,56 @@ export function ATSCalculation({ analysis, calculatedScore, weights, setWeights,
     }
 
     debounceRef.current = setTimeout(async () => {
-      // Fixed value for the changed section
       const fixedValue = newWeights[section];
+      const targetOthers = 100 - fixedValue;
 
-      // Calculate sum of other weights
+      // Sum of others before scaling
       let sumOthers = 0;
       for (const key in newWeights) {
-        if (key !== section) {
-          sumOthers += newWeights[key as keyof ATSWeights];
-        }
+        if (key !== section) sumOthers += newWeights[key as keyof ATSWeights];
       }
 
-      // Target sum for others
-      const targetOthers = Math.max(0, 1 - fixedValue);
+      // Scale others proportionally (integer)
+      const normalized: Record<keyof ATSWeights, number> = { ...newWeights };
+      let total = fixedValue;
 
-      // Adjust other weights proportionally
-      const normalized: ATSWeights = { ...newWeights };
       if (sumOthers > 0) {
         for (const key in normalized) {
           if (key !== section) {
-            normalized[key as keyof ATSWeights] =
-              (newWeights[key as keyof ATSWeights] / sumOthers) * targetOthers;
+            const scaled = Math.round((newWeights[key as keyof ATSWeights] * targetOthers) / sumOthers);
+            normalized[key as keyof ATSWeights] = scaled;
+            total += scaled;
           }
         }
       } else {
-        // If all others are zero, split target equally
-        const othersCount = Object.keys(normalized).length - 1;
+        // If all others are zero, split evenly
+        const countOthers = Object.keys(normalized).length - 1;
+        const evenShare = Math.floor(targetOthers / countOthers);
         for (const key in normalized) {
           if (key !== section) {
-            normalized[key as keyof ATSWeights] = targetOthers / othersCount;
+            normalized[key as keyof ATSWeights] = evenShare;
+            total += evenShare;
           }
         }
       }
 
-      // Save updated weights & recalculate score
-      setWeights(normalized);
-      const score = calculateDynamicATSScore(analysis, normalized);
-      setCalculatedScore(Math.round(score));
-      setLocalWeights(normalized);
+      // Fix rounding error so total = 100
+      let diff = 100 - total;
+      const keys = Object.keys(normalized).filter(k => k !== section);
 
-      // Send to backend
+      let i = 0;
+      while (diff !== 0) {
+        const key = keys[i % keys.length] as keyof ATSWeights;
+        normalized[key] += diff > 0 ? 1 : -1;
+        diff += diff > 0 ? -1 : 1;
+        i++;
+      }
+
+      // Save integer-normalized weights
+      setWeights(normalized as ATSWeights);
+      setCalculatedScore(Math.round(calculateDynamicATSScore(analysis, normalized as ATSWeights)));
+      setLocalWeights(normalized as ATSWeights);
+
       const resume_hash = params.get("resume_hash");
       const jd_hash = params.get("jd_hash");
 
@@ -109,7 +121,7 @@ export function ATSCalculation({ analysis, calculatedScore, weights, setWeights,
           body: JSON.stringify({
             resume_hash,
             jd_hash,
-            score: Math.round(score),
+            score: Math.round(calculateDynamicATSScore(analysis, normalized as ATSWeights)),
             weights: JSON.stringify(normalized),
           }),
           headers: { "Content-Type": "application/json" },
