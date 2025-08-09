@@ -199,7 +199,83 @@ export default function AnalysisPage() {
             console.log('Error fetching analysis:', err);
             toast.error('Failed to load analysis. Please try again later.');
         }).finally(() => setIsLoading(false));
-    }, [authfetch, isSignedIn,  setChatHistory, setJDHash, setResumeHash]);
+    }, [authfetch, isSignedIn, setChatHistory, setJDHash, setResumeHash]);
+
+    // Get matched keywords from analysis
+    const getMatchedKeywords = useCallback((): string[] => {
+        if (!analysis) return [];
+
+        const keywords: string[] = [];
+
+        if (analysis?.skills?.technical_skills?.matched_skills) {
+            keywords.push(...analysis.skills.technical_skills.matched_skills);
+        }
+
+        if (analysis?.work_experience?.keyword_overlap) {
+            keywords.push(...analysis.work_experience.keyword_overlap);
+        }
+
+        if (analysis?.summary?.keywords_matched) {
+            keywords.push(...analysis.summary.keywords_matched);
+        }
+
+        // Remove duplicates
+        return [...new Set(keywords)];
+    }, [analysis]);
+
+    // Get missing keywords from analysis
+    const getMissingKeywords = useCallback((): string[] => {
+        if (!analysis) return [];
+
+        const keywords: string[] = [];
+
+        if (analysis?.skills?.technical_skills?.missing_required_skills) {
+            keywords.push(...analysis.skills.technical_skills.missing_required_skills);
+        }
+
+        if (analysis?.skills?.technical_skills?.required_from_jd) {
+            // Add required skills that are not in matched skills
+            const matched = analysis.skills.technical_skills.matched_skills || [];
+            const required = analysis.skills.technical_skills.required_from_jd;
+            const missing = required.filter(skill =>
+                !matched.some(matchedSkill =>
+                    matchedSkill.toLowerCase() === skill.toLowerCase()
+                )
+            );
+            keywords.push(...missing);
+        }
+
+        // Remove duplicates
+        return [...new Set(keywords)];
+    }, [analysis]);
+
+    useEffect(() => {
+        if(!analysis) return;
+
+        let skills: string[] = [];
+        if (analysis.skills?.technical_skills?.matched_skills) {
+            skills = skills.concat(analysis.skills.technical_skills.matched_skills);
+        }
+
+        if (analysis.skills?.soft_skills?.required_from_jd) {
+            skills = skills.concat(analysis.skills.soft_skills.required_from_jd);
+        }
+
+        setMatchedSkills(skills);
+
+        // Calculate keyword match rate using the formula: matched / (matched + missing) * 100
+        const matchedKeywords = getMatchedKeywords();
+        const missingKeywords = getMissingKeywords();
+        const matchedKeywordCount = matchedKeywords.length;
+        const missingKeywordCount = missingKeywords.length;
+
+        const totalKeywords = matchedKeywordCount + missingKeywordCount;
+        const rate = totalKeywords > 0 ? Math.round((matchedKeywordCount / totalKeywords) * 100) : 0;
+
+        setKeywordMatchRate(rate);
+        setMatchedKeywords(matchedKeywordCount);
+        
+    }, [analysis, getMatchedKeywords, getMissingKeywords])
 
     // Debounced heavy calculations for analysis processing
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -217,54 +293,6 @@ export default function AnalysisPage() {
         // Debounce heavy calculations
         debounceTimeoutRef.current = setTimeout(() => {
             if (!analysis) return;
-
-            // Calculate matched skills
-            let skills: string[] = [];
-            if (analysis?.skills?.technical_skills?.matched_skills) {
-                skills = skills.concat(analysis.skills.technical_skills.matched_skills);
-            }
-
-            if (analysis?.skills?.soft_skills?.required_from_jd) {
-                skills = skills.concat(analysis.skills.soft_skills.required_from_jd);
-            }
-
-            setMatchedSkills(skills);
-
-            // Calculate keyword match rate
-            let totalKeywords = 0;
-            let matchedKeywordCount = 0;
-
-            // Count keywords from work experience
-            if (analysis.work_experience?.keyword_overlap) {
-                matchedKeywordCount += analysis.work_experience.keyword_overlap.length;
-            }
-
-            // Count keywords from summary
-            if (analysis.summary?.keywords_matched) {
-                matchedKeywordCount += analysis.summary.keywords_matched.length;
-            }
-
-            // Count keywords from projects
-            if (analysis.projects) {
-                analysis.projects.forEach(project => {
-                    if (project?.keywords_matched) {
-                        matchedKeywordCount += project.keywords_matched.length;
-                    }
-                });
-            }
-
-            // Count keywords from skills
-            if (analysis.skills?.technical_skills?.matched_skills) {
-                matchedKeywordCount += analysis.skills.technical_skills.matched_skills.length;
-            }
-
-            // Estimate total keywords (this could be improved with actual JD keyword extraction)
-            // For now, we'll base it on the analysis data structure
-            totalKeywords = matchedKeywordCount * 1.5; // Assuming we match about 67% of keywords
-
-            const rate = totalKeywords > 0 ? Math.round((matchedKeywordCount / totalKeywords) * 100) : 0;
-            setKeywordMatchRate(rate);
-            setMatchedKeywords(matchedKeywordCount);
 
             if (!weights) {
                 const w = {
@@ -322,7 +350,7 @@ export default function AnalysisPage() {
                 clearTimeout(debounceTimeoutRef.current);
             }
         };
-    }, [analysis, authfetch, weights])
+    }, [analysis, authfetch, weights, getMatchedKeywords, getMissingKeywords])
 
 
     const getScoreColor = (score: number) => {
@@ -339,54 +367,6 @@ export default function AnalysisPage() {
     const getKeywordsToHighlight = useCallback((): string[] => {
         return matched_skills;
     }, [matched_skills]);
-
-    // Get matched keywords from analysis
-    const getMatchedKeywords = useCallback((): string[] => {
-        if (!analysis) return [];
-        
-        const keywords: string[] = [];
-
-        if (analysis?.skills?.technical_skills?.matched_skills) {
-            keywords.push(...analysis.skills.technical_skills.matched_skills);
-        }
-
-        if (analysis?.work_experience?.keyword_overlap) {
-            keywords.push(...analysis.work_experience.keyword_overlap);
-        }
-
-        if (analysis?.summary?.keywords_matched) {
-            keywords.push(...analysis.summary.keywords_matched);
-        }
-
-        // Remove duplicates
-        return [...new Set(keywords)];
-    }, [analysis]);
-
-    // Get missing keywords from analysis
-    const getMissingKeywords = useCallback((): string[] => {
-        if (!analysis) return [];
-        
-        const keywords: string[] = [];
-
-        if (analysis?.skills?.technical_skills?.missing_required_skills) {
-            keywords.push(...analysis.skills.technical_skills.missing_required_skills);
-        }
-
-        if (analysis?.skills?.technical_skills?.required_from_jd) {
-            // Add required skills that are not in matched skills
-            const matched = analysis.skills.technical_skills.matched_skills || [];
-            const required = analysis.skills.technical_skills.required_from_jd;
-            const missing = required.filter(skill =>
-                !matched.some(matchedSkill =>
-                    matchedSkill.toLowerCase() === skill.toLowerCase()
-                )
-            );
-            keywords.push(...missing);
-        }
-
-        // Remove duplicates
-        return [...new Set(keywords)];
-    }, [analysis]);
 
     if (isLoading) {
         return (
@@ -444,7 +424,7 @@ export default function AnalysisPage() {
                                             </p>
                                         </CardContent>
                                     </Card>
-                                </div>                                
+                                </div>
                                 <Tabs defaultValue="Analysis" className="w-full ">
                                     <TabsList className='w-full border-b-2 shadow-lg border-border'>
                                         <TabsTrigger value="Analysis">Analysis</TabsTrigger>

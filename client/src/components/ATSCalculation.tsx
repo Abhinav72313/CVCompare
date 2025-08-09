@@ -33,84 +33,97 @@ import { useSearchParams } from "next/navigation";
 interface ATSCalculationProps {
   analysis: ResumeAnalysis;
   calculatedScore: number;
-  weights: ATSWeights|null;
+  weights: ATSWeights | null;
   setWeights: (weights: ATSWeights) => void;
   setCalculatedScore: (score: number) => void;
 }
 
-export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,setCalculatedScore}: ATSCalculationProps) {
+export function ATSCalculation({ analysis, calculatedScore, weights, setWeights, setCalculatedScore }: ATSCalculationProps) {
   // Debounce timer ref
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   // Local state for immediate UI updates
-  const [localWeights, setLocalWeights] = useState<ATSWeights|null>(weights);
+  const [localWeights, setLocalWeights] = useState<ATSWeights | null>(weights);
   const authfetch = useAuthenticatedFetch()
   const params = useSearchParams()
 
   const handleWeightChange = useCallback((section: keyof ATSWeights, value: number) => {
-    // Update local weights immediately for responsive UI
-
-    if(!localWeights) return;
+    if (!localWeights) return;
 
     const newWeights = { ...localWeights };
+    // Convert % to decimal
     newWeights[section] = value / 100;
-    
+
     setLocalWeights(newWeights);
 
-    // Clear previous debounce timer
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    // Debounce the expensive calculations
     debounceRef.current = setTimeout(async () => {
-      // Calculate total weight
-      let total = 0;
+      // Fixed value for the changed section
+      const fixedValue = newWeights[section];
+
+      // Calculate sum of other weights
+      let sumOthers = 0;
       for (const key in newWeights) {
-        total += newWeights[key as keyof ATSWeights];
+        if (key !== section) {
+          sumOthers += newWeights[key as keyof ATSWeights];
+        }
       }
 
-      // Normalize weights to sum to 1.0
-      if (total > 0) {
-        const normalized: ATSWeights = { ...newWeights };
+      // Target sum for others
+      const targetOthers = Math.max(0, 1 - fixedValue);
+
+      // Adjust other weights proportionally
+      const normalized: ATSWeights = { ...newWeights };
+      if (sumOthers > 0) {
         for (const key in normalized) {
-          normalized[key as keyof ATSWeights] = key != section ? newWeights[key as keyof ATSWeights] / total : newWeights[section];
-        }
-        setWeights(normalized);
-        const score = calculateDynamicATSScore(analysis, normalized);
-        setCalculatedScore(Math.round(score));
-        setLocalWeights(normalized); // Sync local state with normalized weights
-
-        const resume_hash = params.get('resume_hash') 
-        const jd_hash = params.get('jd_hash')
-
-        if (!resume_hash || !jd_hash) {
-          return
-        }
-
-        await authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analysis/set-score`, {
-          method: 'POST',
-          body: JSON.stringify({
-            resume_hash: resume_hash,
-            jd_hash: jd_hash,
-            score: Math.round(score),
-            weights: JSON.stringify(normalized)
-          }),
-          headers: {
-            'Content-Type': 'application/json'
+          if (key !== section) {
+            normalized[key as keyof ATSWeights] =
+              (newWeights[key as keyof ATSWeights] / sumOthers) * targetOthers;
           }
-        });
-
+        }
+      } else {
+        // If all others are zero, split target equally
+        const othersCount = Object.keys(normalized).length - 1;
+        for (const key in normalized) {
+          if (key !== section) {
+            normalized[key as keyof ATSWeights] = targetOthers / othersCount;
+          }
+        }
       }
-    }, 100); // 100ms debounce
 
+      // Save updated weights & recalculate score
+      setWeights(normalized);
+      const score = calculateDynamicATSScore(analysis, normalized);
+      setCalculatedScore(Math.round(score));
+      setLocalWeights(normalized);
+
+      // Send to backend
+      const resume_hash = params.get("resume_hash");
+      const jd_hash = params.get("jd_hash");
+
+      if (resume_hash && jd_hash) {
+        await authfetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/analysis/set-score`, {
+          method: "POST",
+          body: JSON.stringify({
+            resume_hash,
+            jd_hash,
+            score: Math.round(score),
+            weights: JSON.stringify(normalized),
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }, 100);
   }, [localWeights, setWeights, analysis, setCalculatedScore, params, authfetch]);
-  // Sync local weights when props change
+
 
 
   useEffect(() => {
 
     setLocalWeights(weights);
-    if(!weights) return;
+    if (!weights) return;
     const score = calculateDynamicATSScore(analysis, weights);
     setCalculatedScore(Math.round(score));
   }, [weights]);
@@ -142,7 +155,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
   }
   // Calculate individual section scores
   const getSectionScores = (): SectionScore[] => {
-    if(!localWeights) return [];
+    if (!localWeights) return [];
     const educationScore = calculateEducationScore(analysis);
     const workExperienceScore = calculateWorkExperienceScore(analysis);
     const projectScore = calculateProjectScore(analysis);
@@ -212,7 +225,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
         onWeightChange={handleWeightChange}
         onResetToDefaults={resetToDefaults}
         getSectionKey={getSectionKey}
-        
+
       />
 
       {/* Formula Explanation */}
@@ -221,7 +234,7 @@ export function ATSCalculation({ analysis, calculatedScore,weights,setWeights,se
       {/* Section Breakdown */}
       <SectionBreakdown sectionScores={sectionScores} />
 
-     
+
     </div>
   );
 }
