@@ -128,9 +128,6 @@ async def check_services() -> Dict[str, Dict[str, Any]]:
     # Check AI Service
     services["ai_service"] = await check_ai_service()
     
-    # Check Vector Store
-    services["vector_store"] = await check_vector_store()
-    
     return services
 
 
@@ -195,34 +192,3 @@ async def check_ai_service() -> Dict[str, Any]:
             "details": f"AI service check failed: {str(e)}"
         }
 
-
-async def check_vector_store() -> Dict[str, Any]:
-    """Check Astra Vector Store availability."""
-    try:
-        start_time = time.time()
-        
-        # Check if Astra DB credentials are configured
-        astra_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
-        astra_endpoint = os.getenv("ASTRA_DB_API_ENDPOINT")
-        
-        if not astra_token or not astra_endpoint:
-            return {
-                "status": "unhealthy",
-                "response_time_ms": 0,
-                "details": "Astra DB credentials not configured"
-            }
-        
-        response_time = (time.time() - start_time) * 1000
-        
-        return {
-            "status": "healthy",
-            "response_time_ms": round(response_time, 2),
-            "details": "Vector store configuration verified"
-        }
-    
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "response_time_ms": 0,
-            "details": f"Vector store check failed: {str(e)}"
-        }

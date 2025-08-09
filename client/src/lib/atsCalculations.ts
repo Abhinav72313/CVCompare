@@ -13,7 +13,7 @@ export const defaultWeights: ATSWeights = {
   workExperience: 0.35,
   skills: 0.25,
   certifications: 0.10,
-  summary: 0.05,
+  summary: 0.10,
 };
 
 
